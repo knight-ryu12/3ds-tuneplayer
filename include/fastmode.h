@@ -1,0 +1,1 @@
+int try_speedup();
