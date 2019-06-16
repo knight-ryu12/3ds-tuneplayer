@@ -123,24 +123,15 @@ int main(int argc, char* argv[])
 		if (kDown & KEY_A) {
 			clean_console(&top,&bot);
 			info_flag = 0b000;
-			consoleSelect(&bot);
-			gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
-			fflush(stdout);
 		}
 
 		if (kDown & KEY_X) {
 			clean_console(&top,&bot);
 			info_flag = 0b001;
-			consoleSelect(&bot);
-			gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
-			fflush(stdout);
 		}
 		if (kDown & KEY_Y) {
 			clean_console(&top,&bot);
 			info_flag = 0b010;
-			consoleSelect(&bot);
-			gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
-			fflush(stdout);
 		}
 
 
@@ -178,12 +169,8 @@ int main(int argc, char* argv[])
 			}
 			//_debug_pause();
 			xmp_start_player(c,32768,0);
-			//chmax = mi.mod->chn<=32?mi.mod->chn:32;
 			clean_console(&top,&bot);
-			consoleSelect(&bot);
-			gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
 			scroll = 0;
-			//Recalc chmax
 			playSound=1;
 			doRead=1;
 		}
@@ -206,12 +193,8 @@ int main(int argc, char* argv[])
 			}
 			//_debug_pause();
 			xmp_start_player(c,32768,0);
-			//chmax = mi.mod->chn<=32?mi.mod->chn:32;
 			clean_console(&top,&bot);
-			consoleSelect(&bot);
-			gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
 			scroll = 0;
-			//Recalc chmax
 			playSound=1;
 			doRead=1;
 		}
