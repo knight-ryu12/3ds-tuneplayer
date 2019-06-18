@@ -6,7 +6,7 @@
 #define CHANNEL 0x10
 #define SAMPLE_RATE 32768
 #define N3DS_BLOCK 4096
-#define O3DS_BLOCK 8192
+#define O3DS_BLOCK 6144
 
 extern int runSound, playSound;
 extern int runRead, doRead;
@@ -30,7 +30,7 @@ Result setup_ndsp() {
 
 int initXMP(const char* path,xmp_context c, struct xmp_module_info *mi) {
 	if(xmp_load_module(c,path) != 0) return 1;
-	xmp_get_module_info(c,mi);
+	xmp_get_module_info(c,mi); 
 	//xmp_set_player(c,XMP_PLAYER_INTERP,XMP_INTERP_);
 	xmp_set_player(c,XMP_PLAYER_VOICES,256);
 	return 0;
@@ -53,6 +53,7 @@ void soundThread(void *arg) {
 
 	if(xmp_start_player(c,SAMPLE_RATE,0) != 0) {
 		printf("Error on xmp_start\n");
+		goto exit;
 	}
 
 	_PAUSE_FLAG = 0;
@@ -78,7 +79,7 @@ void soundThread(void *arg) {
 			svcSleepThread(10e9/(BLOCK/2));
 		
 	}
-
+exit:
 	ndspChnWaveBufClear(CHANNEL);
 	ndspExit();
 	linearFree(sample);

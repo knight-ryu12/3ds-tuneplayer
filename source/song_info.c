@@ -59,7 +59,7 @@ void show_channel_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintC
             }
             else {snprintf(buf,15,"---"); old_note[i] = 0;}
 			printf("%2d:%c%02x %s %02x %02d%02d %5x %02x:%02x %02x:%02x\n"
-					,i,ev.note!=0?'!':ci.volume==0?' ':'G'
+					,i+1,ev.note!=0?'!':ci.volume==0?' ':'G'
 					,ci.instrument,buf,ci.pan
 					,ci.volume,ev.vol,ci.position
 					,ev.fxt,ev.fxp
@@ -101,7 +101,7 @@ void show_instrument_info(struct xmp_module_info mi,PrintConsole top,PrintConsol
 			*/
 			struct xmp_instrument *xi = &xm->xxi[i];
             if(isind && toscroll == insmax-1) ind_en = true;
-			printf("%2d:\"%-32.32s\" %02x%04x %c%c%c%c\n",
+			printf("%2x:\"%-32.32s\" %02x%04x %c%c%c%c\n",
 						i,xi->name,xi->vol,xi->rls,
 						xi->aei.flg&1?'A':'-',
 						xi->pei.flg&1?'P':'-',

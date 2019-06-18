@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <3ds.h>
-#include <xmp.h>
+#include <xmp.h> 
 #include "fastmode.h"
 #include "sndthr.h"
 #include "song_info.h"
@@ -48,6 +48,16 @@ void clean_console(PrintConsole *top,PrintConsole *bot) {
 	consoleClear();
 }
 
+ int loadSong(xmp_context c,struct xmp_module_info *mi,const char* path) {
+			xmp_end_player(c);
+			xmp_release_module(c);
+			if(initXMP(path,c,mi) != 0) {
+				printf("Error on initXMP!!\n");
+				return 1;
+			}
+			return 0;
+}
+
 int main(int argc, char* argv[])
 {
 	Result res;
@@ -81,10 +91,15 @@ int main(int argc, char* argv[])
 	if(h & KEY_R) {model = 0; printf("Model force 0.\n");}
 
 	printf("Loading....\n");
+	if(loadSong(c,&mi,track[i]) != 0) {
+		printf("Error on loadSong !!!?\n");
+		goto exit;
+	};
+	/*
 	if(initXMP(track[i],c,&mi) != 0) {
 			printf("Error on initXMP!!\n");
 			goto exit;
-	}
+	}*/
 	clean_console(&top,&bot);
 
 	xmp_get_frame_info(c,&fi);
@@ -161,12 +176,10 @@ int main(int argc, char* argv[])
 			clean_console(&top,&bot);
 			gotoxy(0,0);
 			printf("Loading....\n");
-			xmp_end_player(c);
-			xmp_release_module(c);
-			if(initXMP(track[i],c,&mi) != 0) {
-				printf("Error on initXMP!!\n");
+			if(loadSong(c,&mi,track[i]) != 0) {
+				printf("Error on loadSong !!!?\n");				
 				goto exit;
-			}
+			};
 			//_debug_pause();
 			xmp_start_player(c,32768,0);
 			clean_console(&top,&bot);
@@ -185,12 +198,10 @@ int main(int argc, char* argv[])
 			clean_console(&top,&bot);
 			gotoxy(0,0);
 			printf("Loading....\n");
-			xmp_end_player(c);
-			xmp_release_module(c);
-			if(initXMP(track[i],c,&mi) != 0) {
-				printf("Error on initXMP!!\n");
+			if(loadSong(c,&mi,track[i]) != 0) {
+				printf("Error on loadSong !!!?\n");
 				goto exit;
-			}
+			};
 			//_debug_pause();
 			xmp_start_player(c,32768,0);
 			clean_console(&top,&bot);
