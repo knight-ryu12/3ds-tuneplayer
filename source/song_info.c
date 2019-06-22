@@ -2,13 +2,17 @@
 #include <3ds.h>
 #include <stdio.h>
 #include <xmp.h>
+#include <stdlib.h>
 #define gotoxy(x,y) printf("\033[%d;%dH",(x),(y))
 
 static char *note_name[] = {
 	"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"
 };
 static char buf[16];
+static char fx_buf[32];
 static uint8_t old_note[256]; 
+static uint8_t old_fxt[256];
+static uint8_t old_fxp[256];
 
 void show_generic_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintConsole top,PrintConsole bot) {
         consoleSelect(&bot);
@@ -16,8 +20,40 @@ void show_generic_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintC
 		printf("%02d %02x %02x %1x %3d %3d/%3d\n",fi.pos,fi.pattern,fi.row,fi.speed,fi.bpm,
 				fi.virt_used,fi.virt_channels);
 		printf("%s\n%s\n",mi.mod->name,mi.mod->type);
-
 }
+
+void parse_fx(char *buf,uint8_t fxt,uint8_t fxp,bool isFT) {
+	char _arg1[8];
+	snprintf(_arg1,6,"-----");
+	switch(fxt) {
+		case 0:
+			if(!fxp) {
+				break;
+			}
+			snprintf(_arg1,6,"ARPeG");
+			break;
+		case 1:
+			snprintf(_arg1,6,"PORtU");
+			break;
+		case 2:
+			snprintf(_arg1,6,"PORtD");
+			break;
+		case 9:
+			snprintf(_arg1,6,"OFStS");
+			break;
+		case 0xa:
+			if((fxp&0x0F)==0 & (fxp>>4&0xF) > 0) // Up
+				snprintf(_arg1,6,"VOLsU");
+			else if(((fxp>>4)&0xF)==0 && (fxp&0x0F)>0) // Down
+				snprintf(_arg1,6,"VOLsD");
+			break;
+		default:
+			snprintf(_arg1,6,"-----");
+	}
+	snprintf(buf,20,"%-5.5s%-02X",_arg1,fxp);
+	//free(_arg1);
+}
+
 
 void show_channel_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintConsole top,PrintConsole bot,int *f) {
     	//int line_lim = isN3DS?29:16;
@@ -58,11 +94,12 @@ void show_channel_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintC
                 snprintf(buf,15,"\e[36;1m%s%d\e[0m",note_name[old_note[i]%12],old_note[i]/12);
             }
             else {snprintf(buf,15,"---"); old_note[i] = 0;}
-			printf("%2d:%c%02x %s %02x %02d%02d %5x %02x:%02x %02x:%02x\n"
+			parse_fx(fx_buf,ev.fxt,ev.fxp,0);
+			printf("%2d:%c%02x %s %02x %02d%02d %5x %s %02x:%02x\n"
 					,i+1,ev.note!=0?'!':ci.volume==0?' ':'G'
 					,ci.instrument,buf,ci.pan
 					,ci.volume,ev.vol,ci.position
-					,ev.fxt,ev.fxp
+					,fx_buf
 					,ev.f2t,ev.f2p
 					);
 		}
@@ -91,15 +128,9 @@ void show_instrument_info(struct xmp_module_info mi,PrintConsole top,PrintConsol
 			*f = toscroll;
 			//pat c (toscroll reaches (xm->ins-29))
 		}
-
+		struct xmp_instrument *xi;
 		for (int i=toscroll;i<insmax;i++) {
-			// Does it o/f?
-			/* if(i>=line_lim) { 
-				consoleSelect(&bot);
-				gotoxy(i+4-line_lim,0);
-			}
-			*/
-			struct xmp_instrument *xi = &xm->xxi[i];
+			xi = &xm->xxi[i];
             if(isind && toscroll == insmax-1) ind_en = true;
 			printf("%2x:\"%-32.32s\" %02x%04x %c%c%c%c\n",
 						i,xi->name,xi->vol,xi->rls,
@@ -110,24 +141,28 @@ void show_instrument_info(struct xmp_module_info mi,PrintConsole top,PrintConsol
 
 }
 
-void show_sample_info(struct xmp_module_info mi,PrintConsole top,PrintConsole bot,int isN3DS) {
-	    int line_lim = isN3DS?29:16;
-		int islinelim = 0;
+void show_sample_info(struct xmp_module_info mi,PrintConsole top,PrintConsole bot,int *f) {
+	    int toscroll = *f;
 		consoleSelect(&top);
 		gotoxy(0,0);
 		struct xmp_module *xm = mi.mod;
-		int insmax = (xm->smp)<=32?(xm->smp):32;
-		for (int i=0;i<insmax;i++) {
-			// Does it o/f?
-			if(i>=line_lim) { 
-				consoleSelect(&bot);
-				gotoxy(i+4-line_lim,0);
-				islinelim = 1;
-
-			}
+		int smpmax = 0;
+		if(xm->smp <= 29) {
+			toscroll=0; smpmax=xm->smp;
+			// pat a (there's no exceeding limit. ignore f solely.)
+		} else if (toscroll < xm->smp-29) {
+			smpmax=29+toscroll;
+			//pat b (there's scroll need. but f is under xm->ins-29)
+		} else if (toscroll >= xm->smp-29) {
+			toscroll = xm->smp-29;
+			smpmax = xm->smp;
+			*f = toscroll;
+			//pat c (toscroll reaches (xm->ins-29))
+		}
+		for (int i=toscroll;i<smpmax;i++) {
 			struct xmp_sample *xs = &xm->xxs[i];
             // ignore sample that doesn't have size
-			if(xs->len==0) continue;
+			//if(xs->len==0) continue;
 			
 			printf("%2d:\"%-16.16s\" %5x%5x%5x %c%c%c%c%c%c\n",
 						i,xs->name,xs->len,xs->lps,xs->lpe,

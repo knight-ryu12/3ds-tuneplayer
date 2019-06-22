@@ -13,7 +13,7 @@ extern int runRead, doRead;
 extern struct xmp_frame_info fi;
 extern uint64_t d_t;
 
-volatile uint32_t _PAUSE_FLAG;
+extern volatile uint32_t _PAUSE_FLAG;
 
 Result setup_ndsp() {
 	Result res;
@@ -59,11 +59,20 @@ void soundThread(void *arg) {
 	_PAUSE_FLAG = 0;
 
 	while(runSound) {
+		if(!playSound) {
+			_PAUSE_FLAG = 1;
+			while(runSound && !playSound) {svcSleepThread(20000);};
+			// is sleep quit by runSound being off?
+			if(!runSound) break;
+			_PAUSE_FLAG = 0;
+		}
+		/*
 		while(runSound && !playSound) {
 			_PAUSE_FLAG = 1;
-			svcSleepThread(10e9 / 50);
+		//svcSleepThread(10e9);
 		}
 		_PAUSE_FLAG = 0;
+		*/
 		//xmp_play_frame(c);
 		xmp_get_frame_info(c,&fi);
 
