@@ -1,6 +1,8 @@
 #pragma once
 #include <xmp.h>
 
+#define CHANNEL 0x10
+#define SAMPLE_RATE 32728
 
 Result setup_ndsp();
 int initXMP(const char* path,xmp_context c, struct xmp_module_info *mi);

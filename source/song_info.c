@@ -22,12 +22,19 @@ void show_generic_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintC
 		printf("%s\n%s\n",mi.mod->name,mi.mod->type);
 }
 
-void parse_fx(char *buf,uint8_t fxt,uint8_t fxp,bool isFT) {
+void parse_fx(int ch,char *buf,uint8_t fxt,uint8_t fxp,bool isFT) {
 	char _arg1[8];
+	uint8_t _fxp = fxp;
+	if((fxt == 1 || fxt == 2 || fxt == 3 || fxt == 4) && fxp != 0) {
+		old_fxp[ch] = fxp;
+	} else if ((fxt == 1 ||fxt == 2 || fxt == 3 || fxt == 4) && fxp == 0) {
+		_fxp = old_fxp[ch];
+	} else {old_fxp[ch] = 0;}
+
 	snprintf(_arg1,6,"-----");
 	switch(fxt) {
 		case 0:
-			if(!fxp) {
+			if(!_fxp) {
 				break;
 			}
 			snprintf(_arg1,6,"ARPeG");
@@ -38,19 +45,27 @@ void parse_fx(char *buf,uint8_t fxt,uint8_t fxp,bool isFT) {
 		case 2:
 			snprintf(_arg1,6,"PORtD");
 			break;
+		case 3:
+			snprintf(_arg1,6,"TPOrT");
+			break;
+		case 4:
+			snprintf(_arg1,6,"VIBrT");
+			break;
 		case 9:
 			snprintf(_arg1,6,"OFStS");
 			break;
 		case 0xa:
-			if((fxp&0x0F)==0 & (fxp>>4&0xF) > 0) // Up
+			if((_fxp&0x0F)==0 && (_fxp>>4&0xF) > 0) // Up
 				snprintf(_arg1,6,"VOLsU");
-			else if(((fxp>>4)&0xF)==0 && (fxp&0x0F)>0) // Down
+			else if(((_fxp>>4)&0xF)==0 && (_fxp&0x0F)>0) // Down
 				snprintf(_arg1,6,"VOLsD");
 			break;
+		case 0xc:
+			snprintf(_arg1,6,"VOLsT");
 		default:
 			snprintf(_arg1,6,"-----");
 	}
-	snprintf(buf,20,"%-5.5s%-02X",_arg1,fxp);
+	snprintf(buf,20,"%-5.5s%02X%02X",_arg1,fxt,_fxp);
 	//free(_arg1);
 }
 
@@ -94,7 +109,7 @@ void show_channel_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintC
                 snprintf(buf,15,"\e[36;1m%s%d\e[0m",note_name[old_note[i]%12],old_note[i]/12);
             }
             else {snprintf(buf,15,"---"); old_note[i] = 0;}
-			parse_fx(fx_buf,ev.fxt,ev.fxp,0);
+			parse_fx(i,fx_buf,ev.fxt,ev.fxp,0);
 			printf("%2d:%c%02x %s %02x %02d%02d %5x %s %02x:%02x\n"
 					,i+1,ev.note!=0?'!':ci.volume==0?' ':'G'
 					,ci.instrument,buf,ci.pan

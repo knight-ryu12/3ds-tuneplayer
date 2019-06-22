@@ -3,8 +3,6 @@
 #include"sndthr.h"
 #include<string.h>
 
-#define CHANNEL 0x10
-#define SAMPLE_RATE 32768
 #define N3DS_BLOCK 4096
 #define O3DS_BLOCK 6144
 

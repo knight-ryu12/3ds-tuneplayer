@@ -50,14 +50,22 @@ void clean_console(PrintConsole *top,PrintConsole *bot) {
 }
 
 int loadSong(xmp_context c,struct xmp_module_info *mi,char* path) {
-	 		printf("%s\n",path);
+			printf("Loading....\n");
+	 		struct xmp_test_info ti;
+			 printf("%s\n",path);
 			xmp_end_player(c);
 			xmp_release_module(c);
+			if(xmp_test_module(path,&ti) != 0) {
+				printf("Illegal module detected.\n");
+				return 2;
+			}
+			printf("%s\n%s\n",ti.name,ti.type);
 			if(initXMP(path,c,mi) != 0) {
 				printf("Error on initXMP!!\n");
 				return 1;
 			}
-			xmp_start_player(c,32768,0);
+			svcSleepThread(1000000000); //wait 1.5s
+			xmp_start_player(c,SAMPLE_RATE,0);
 			return 0;
 }
 
@@ -99,7 +107,7 @@ int main(int argc, char* argv[])
 	if(h & KEY_L) {model = 1; printf("Model force 1.\n"); _debug_pause();}
 	if(h & KEY_DUP) {_debug_pause();}
 	
-	printf("Loading....\n");
+	
 	if(loadSong(c,&mi,track[i]) != 0) {
 		printf("Error on loadSong !!!?\n");
 		goto exit;
@@ -178,7 +186,6 @@ int main(int argc, char* argv[])
 			xmp_stop_module(c);
 			clean_console(&top,&bot);
 			gotoxy(0,0);
-			printf("Loading....\n");
 			if(loadSong(c,&mi,track[i]) != 0) {
 				printf("Error on loadSong !!!?\n");				
 				goto exit;
@@ -198,7 +205,6 @@ int main(int argc, char* argv[])
 			//while(!_PAUSE_FLAG);
 			clean_console(&top,&bot);
 			gotoxy(0,0);
-			printf("Loading....\n");
 			if(loadSong(c,&mi,track[i]) != 0) {
 				printf("Error on loadSong !!!?\n");
 				goto exit;
