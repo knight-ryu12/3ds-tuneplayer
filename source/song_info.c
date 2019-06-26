@@ -10,31 +10,45 @@ static char *note_name[] = {
 };
 static char buf[16];
 static char fx_buf[32];
+static char fx2_buf[32];
 static uint8_t old_note[256]; 
 static uint8_t old_fxt[256];
 static uint8_t old_fxp[256];
+static uint8_t old_f2t[256];
+static uint8_t old_f2p[256];
 
 void show_generic_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintConsole top,PrintConsole bot) {
         consoleSelect(&bot);
 		gotoxy(0,0);
-		printf("%02d %02x %02x %1x %3d %3d/%3d\n",fi.pos,fi.pattern,fi.row,fi.speed,fi.bpm,
-				fi.virt_used,fi.virt_channels);
+		printf("%02x %02x %02x %1x %3d %3d/%3d %1d\n",fi.pos,fi.pattern,fi.row,fi.speed,fi.bpm,
+				fi.virt_used,fi.virt_channels,fi.loop_count);
 		printf("%s\n%s\n",mi.mod->name,mi.mod->type);
 }
 
-void parse_fx(int ch,char *buf,uint8_t fxt,uint8_t fxp,bool isFT) {
-	char _arg1[8];
+void parse_fx(int ch,char *buf,uint8_t *ofxt,uint8_t *ofxp,uint8_t fxt,uint8_t fxp,bool isFT,bool isf2) {
+	static char _arg1[8];
+	bool isEFFM = false;
+	bool isNNA = false;
 	uint8_t _fxp = fxp;
-	if((fxt == 1 || fxt == 2 || fxt == 3 || fxt == 4) && fxp != 0) {
-		old_fxp[ch] = fxp;
-	} else if ((fxt == 1 ||fxt == 2 || fxt == 3 || fxt == 4) && fxp == 0) {
-		_fxp = old_fxp[ch];
-	} else {old_fxp[ch] = 0;}
+	//ofxt[ch] = fxt;
+	if((fxt == 1 || fxt == 2 || fxt == 3 || fxt == 4 || fxt == 6 || fxt == 7 || fxt==0xa)) {
+		old_fxt[ch] = fxt;
+	if(fxp != 0) {
+		ofxp[ch] = fxp;
+	} else if ((fxt == 1 || fxt == 2) && fxp == 0) {
+		_fxp = ofxp[ch]; isEFFM = true;
+	} else if (ofxt[ch] == fxt && fxp == 0) { // ...But treat 1 and 2 as same effect.
+		_fxp = ofxp[ch]; isEFFM = true;
+	} 
+	} else {
+		ofxt[ch] = 0; 
+		ofxp[ch] = 0; isEFFM = false;
+	}
 
 	snprintf(_arg1,6,"-----");
 	switch(fxt) {
 		case 0:
-			if(!_fxp) {
+			if(!fxp) { //need to be real, not fake one
 				break;
 			}
 			snprintf(_arg1,6,"ARPeG");
@@ -51,21 +65,47 @@ void parse_fx(int ch,char *buf,uint8_t fxt,uint8_t fxp,bool isFT) {
 		case 4:
 			snprintf(_arg1,6,"VIBrT");
 			break;
+		case 5:
+			snprintf(_arg1,6,"TONvS");
+			break;
+		case 6:
+			snprintf(_arg1,6,"VIBvS");
+			break;
+		case 7:
+			snprintf(_arg1,6,"TREmO");
+			break;
 		case 9:
 			snprintf(_arg1,6,"OFStS");
 			break;
 		case 0xa:
+			if(isFT) {
 			if((_fxp&0x0F)==0 && (_fxp>>4&0xF) > 0) // Up
 				snprintf(_arg1,6,"VOLsU");
 			else if(((_fxp>>4)&0xF)==0 && (_fxp&0x0F)>0) // Down
 				snprintf(_arg1,6,"VOLsD");
+			} else {
+				// S3M/IT
+				int h,l;
+				h = (_fxp>>4)&0xF;
+				l = _fxp&0xF;
+				if(l == 0xF && h != 0) snprintf(_arg1,6,"VOLsU");
+				else if(h == 0xf && l != 0) snprintf(_arg1,6,"VOLsD");
+				else if (h == 0xf || l == 0xf) snprintf(_arg1,6,"VOLfS");
+				//TODO effect memory
+			}
 			break;
 		case 0xc:
 			snprintf(_arg1,6,"VOLsT");
+			break;
+
+		case 0xe: // in FTII, E denotes "Extended" effect; that means we need break it down
+
+
+
 		default:
 			snprintf(_arg1,6,"-----");
 	}
-	snprintf(buf,20,"%-5.5s%02X%02X",_arg1,fxt,_fxp);
+	snprintf(buf,20,"%-5.5s%02X%s%02X\e[0m",_arg1,fxt,isEFFM?"\e[36m":isNNA?"\e[31m":"\e[0m",_fxp);
 	//free(_arg1);
 }
 
@@ -109,13 +149,14 @@ void show_channel_info(struct xmp_frame_info fi,struct xmp_module_info mi,PrintC
                 snprintf(buf,15,"\e[36;1m%s%d\e[0m",note_name[old_note[i]%12],old_note[i]/12);
             }
             else {snprintf(buf,15,"---"); old_note[i] = 0;}
-			parse_fx(i,fx_buf,ev.fxt,ev.fxp,0);
-			printf("%2d:%c%02x %s %02x %02d%02d %5x %s %02x:%02x\n"
+			parse_fx(i,fx_buf,old_fxt,old_fxp,ev.fxt,ev.fxp,1,false);
+			parse_fx(i,fx2_buf,old_f2t,old_f2p,ev.f2t,ev.f2p,1,true);
+			printf("%2d:%c%02x %s %02x %02d%02d %5x %s %s\n"
 					,i+1,ev.note!=0?'!':ci.volume==0?' ':'G'
 					,ci.instrument,buf,ci.pan
 					,ci.volume,ev.vol,ci.position
 					,fx_buf
-					,ev.f2t,ev.f2p
+					,fx2_buf
 					);
 		}
 }

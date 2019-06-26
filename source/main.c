@@ -52,7 +52,7 @@ void clean_console(PrintConsole *top,PrintConsole *bot) {
 int loadSong(xmp_context c,struct xmp_module_info *mi,char* path) {
 			printf("Loading....\n");
 	 		struct xmp_test_info ti;
-			 printf("%s\n",path);
+			printf("%s\n",path);
 			xmp_end_player(c);
 			xmp_release_module(c);
 			if(xmp_test_module(path,&ti) != 0) {
@@ -113,10 +113,9 @@ int main(int argc, char* argv[])
 		goto exit;
 	};
 	clean_console(&top,&bot);
-
 	xmp_get_frame_info(c,&fi);
 	consoleSelect(&bot);
-	gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
+	//gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
 	//s = APT_SetAppCpuTimeLimit(30);
 	//toxy(0,0); printf("SetAppCpuTimeLimit(): %08lx\n",res);
 	runSound = playSound = 1;
@@ -133,6 +132,25 @@ int main(int argc, char* argv[])
 	{
 		gspWaitForVBlank();
 		gfxSwapBuffers();
+
+		//Check loop cnt
+		if(fi.loop_count > 0) {
+			i++;
+			if(i > track_size-1) {i=0; continue;}
+			playSound=0;
+			while(!_PAUSE_FLAG) {svcSleepThread(20000);}
+			xmp_stop_module(c);
+			clean_console(&top,&bot);
+			gotoxy(0,0);
+			if(loadSong(c,&mi,track[i]) != 0) {
+				printf("Error on loadSong !!!?\n");				
+				goto exit;
+			};
+			//_debug_pause();
+			clean_console(&top,&bot);
+			scroll=0;
+			playSound=1;			
+		}
 
 		show_generic_info(fi,mi,top,bot);
 		/// 000 shows default info.
@@ -202,7 +220,6 @@ int main(int argc, char* argv[])
 			playSound=0;
 			while(!_PAUSE_FLAG) {svcSleepThread(20000);}
 			xmp_stop_module(c);
-			//while(!_PAUSE_FLAG);
 			clean_console(&top,&bot);
 			gotoxy(0,0);
 			if(loadSong(c,&mi,track[i]) != 0) {

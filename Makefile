@@ -50,19 +50,19 @@ CFLAGS	:=	-g -ggdb -Wall -Og -mword-relocations \
 			-fomit-frame-pointer -ffunction-sections \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
+CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -std=gnu11
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++17
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lxmp -lctrud -lm
+LIBS	:= -lxmp -lctru -lm
 
-APP_TITLE := 3DS-libxmp-test
+APP_TITLE := $(TARGET)
 APP_DESCRIPTION := mmh... libxmp...
 APP_AUTHOR := Chromaryu
-
+ICON := 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib

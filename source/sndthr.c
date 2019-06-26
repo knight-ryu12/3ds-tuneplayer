@@ -2,6 +2,7 @@
 #include<xmp.h>
 #include"sndthr.h"
 #include<string.h>
+#include<stdio.h>
 
 #define N3DS_BLOCK 4096
 #define O3DS_BLOCK 6144
@@ -19,7 +20,7 @@ Result setup_ndsp() {
 	if(R_FAILED(res)) return res;
 
 	ndspChnReset(CHANNEL);
-	ndspChnSetInterp(CHANNEL, NDSP_INTERP_POLYPHASE);
+	ndspChnSetInterp(CHANNEL, NDSP_INTERP_NONE);
 	ndspChnSetFormat(CHANNEL,NDSP_FORMAT_STEREO_PCM16);
 	ndspSetOutputMode(NDSP_OUTPUT_STEREO);
 	ndspChnSetRate(CHANNEL,SAMPLE_RATE);
