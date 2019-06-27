@@ -13,7 +13,7 @@
 
 char *romfs_path = "romfs:/";
 char *track[19] = {"romfs:/A94FINAL.S3M",
-                   "romfs:/nagz-xylan_orb_short.xm",
+                   "romfs:/_sunlight_.xm",
                    "romfs:/reed-imploder.xm",
                    "romfs:/12oz.s3m",
                    "romfs:/last step.xm",
@@ -58,9 +58,10 @@ void clean_console(PrintConsole *top, PrintConsole *bot) {
     consoleClear();
 }
 
-int loadSong(xmp_context c, struct xmp_module_info *mi, char *path) {
+int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, int *isFT) {
     printf("Loading....\n");
     struct xmp_test_info ti;
+    int modeparam;
     printf("%s\n", path);
     xmp_end_player(c);
     xmp_release_module(c);
@@ -69,11 +70,16 @@ int loadSong(xmp_context c, struct xmp_module_info *mi, char *path) {
         return 2;
     }
     printf("%s\n%s\n", ti.name, ti.type);
+    if (strstr(ti.type, "XM") != NULL) {
+        printf("XM Mode\n");
+        *isFT = 1;
+    } else
+        *isFT = 0;
     if (initXMP(path, c, mi) != 0) {
         printf("Error on initXMP!!\n");
         return 1;
     }
-    svcSleepThread(1000000000);  // wait 1.5s
+    svcSleepThread(150000000);  // wait 1.s
     xmp_start_player(c, SAMPLE_RATE, 0);
     return 0;
 }
@@ -88,6 +94,7 @@ int main(int argc, char *argv[]) {
     int model;
     Thread snd_thr = NULL;
     struct xmp_module_info mi;
+    static int isFT = 0;
     // cur_tick = svcGetSystemTick();
     gfxInitDefault();
     consoleInit(GFX_TOP, &top);
@@ -126,7 +133,7 @@ int main(int argc, char *argv[]) {
         _debug_pause();
     }
 
-    if (loadSong(c, &mi, track[i]) != 0) {
+    if (loadSong(c, &mi, track[i], &isFT) != 0) {
         printf("Error on loadSong !!!?\n");
         goto exit;
     };
@@ -147,7 +154,6 @@ int main(int argc, char *argv[]) {
     consoleSelect(&top);
 
     int scroll = 0;
-
     // Main loop
     while (aptMainLoop()) {
         gspWaitForVBlank();
@@ -167,7 +173,7 @@ int main(int argc, char *argv[]) {
             xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSong(c, &mi, track[i]) != 0) {
+            if (loadSong(c, &mi, track[i], &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
                 goto exit;
             }
@@ -177,14 +183,14 @@ int main(int argc, char *argv[]) {
             playSound = 1;
         }
 
-        show_generic_info(fi, mi, top, bot);
+        show_generic_info(fi, mi, &top, &bot);
         /// 000 shows default info.
         if (info_flag & 1)
             show_instrument_info(mi, &top, &bot, &scroll);
         else if (info_flag & 2)
             show_sample_info(mi, &top, &bot, &scroll);
         else
-            show_channel_info(fi, mi, &top, &bot, &scroll);  // Fall back
+            show_channel_info(fi, mi, &top, &bot, &scroll, isFT);  // Fall back
         hidScanInput();
         // Your code goes here
         u32 kDown = hidKeysDown();
@@ -225,7 +231,7 @@ int main(int argc, char *argv[]) {
         if (kDown & KEY_RIGHT) {
             i++;
             if (i > track_size - 1) {
-                i = track_size - 1;
+                i = 0;
                 continue;
             }
             playSound = 0;
@@ -235,7 +241,7 @@ int main(int argc, char *argv[]) {
             xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSong(c, &mi, track[i]) != 0) {
+            if (loadSong(c, &mi, track[i], &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
                 goto exit;
             };
@@ -248,7 +254,7 @@ int main(int argc, char *argv[]) {
         if (kDown & KEY_LEFT) {
             i--;
             if (i < 0) {
-                i = 0;
+                i = track_size - 1;
                 continue;
             }
             playSound = 0;
@@ -258,7 +264,7 @@ int main(int argc, char *argv[]) {
             xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSong(c, &mi, track[i]) != 0) {
+            if (loadSong(c, &mi, track[i], &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
                 goto exit;
             };

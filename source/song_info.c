@@ -17,11 +17,13 @@ static uint8_t old_f2t[256];
 static uint8_t old_f2p[256];
 
 void show_generic_info(struct xmp_frame_info fi, struct xmp_module_info mi,
-                       PrintConsole top, PrintConsole bot) {
-    consoleSelect(&bot);
+                       PrintConsole *top, PrintConsole *bot) {
+    char secondbuf[32];
+    snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi.time / 1000 / 60, fi.time / 1000 % 60, fi.total_time / 1000 / 60, fi.total_time / 1000 % 60);
+    consoleSelect(bot);
     gotoxy(0, 0);
-    printf("%02x %02x %02x %1x %3d %3d/%3d %1d\n", fi.pos, fi.pattern, fi.row,
-           fi.speed, fi.bpm, fi.virt_used, fi.virt_channels, fi.loop_count);
+    printf("%02x %02x %02x %1x %3d %1d %s\n", fi.pos, fi.pattern, fi.row,
+           fi.speed, fi.bpm, fi.loop_count, secondbuf);
     printf("%s\n%s\n", mi.mod->name, mi.mod->type);
 }
 
@@ -44,11 +46,14 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
     // ofxt[ch] = fxt;
 
     if ((fxt == 1 || fxt == 2 || fxt == 3 || fxt == 4 || fxt == 6 || fxt == 7 ||
-         fxt == 0xa)) {
-        if (fxp == 0)
-            get_effect_memory(ch, ofxt, ofxp);
-        else
+         fxt == 0xa || fxt == 0x11)) {
+        if (fxp == 0) {
+            _fxp = get_effect_memory(ch, ofxt, ofxp);
+            isEFFM = true;
+        } else {
+            isNNA = true;
             set_effect_memory(ch, fxp, fxt, ofxt, ofxp);
+        }
     }
 
     snprintf(_arg1, 6, "-----");
@@ -81,10 +86,17 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
         case 7:
             snprintf(_arg1, 6, "TREmO");
             break;
+        case 8:
+            snprintf(_arg1, 6, "PANsT");
+            break;
         case 9:
             snprintf(_arg1, 6, "OFStS");
             break;
+        case 0x11:
+            snprintf(_arg1, 6, "GVOlS");
+            break;
         case 0xa:
+        case 0xa4:
             if (isFT) {
                 if ((_fxp & 0x0F) == 0 && (_fxp >> 4 & 0xF) > 0)  // Up
                     snprintf(_arg1, 6, "VOLsU");
@@ -101,15 +113,49 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
                     snprintf(_arg1, 6, "VOLsD");
                 else if (h == 0xf || l == 0xf)
                     snprintf(_arg1, 6, "VOLfS");
-                // TODO effect memory
             }
             break;
         case 0xc:
             snprintf(_arg1, 6, "VOLsT");
             break;
 
-        case 0xe:  // in FTII, E denotes "Extended" effect; that means we need break
-                   // it down
+        case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
+                    // it down
+            uint8_t h, l;
+            h = (fxp >> 4) & 0xF;
+            l = fxp & 0xF;
+            fxp = l;
+            switch (h) {
+                default:
+                    break;
+                case 0x2:
+                    snprintf(_arg1, 6, "EPRtD");
+                    break;
+                case 0x1:
+                    snprintf(_arg1, 6, "EPRtU");
+                    break;
+                case 0xa:
+                    snprintf(_arg1, 6, "EFVsU");
+                    break;
+                case 0xb:
+                    snprintf(_arg1, 6, "EFVsD");
+                    break;
+                case 0xc:
+                    snprintf(_arg1, 6, "E_CuT");
+                    break;
+                case 0xd:
+                    snprintf(_arg1, 6, "EDElY");
+                    break;
+            }
+            break;
+
+        case 0xf:
+            snprintf(_arg1, 6, "SPDsT");
+            break;
+
+        case 0x1b:
+            snprintf(_arg1, 6, "RETrG");
+            break;
 
         default:
             snprintf(_arg1, 6, "-----");
@@ -120,9 +166,8 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
 }
 
 void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
-                       PrintConsole *top, PrintConsole *bot, int *f) {
-    // int line_lim = isN3DS?29:16;
-    consoleSelect(&top);
+                       PrintConsole *top, PrintConsole *bot, int *f, int isFT) {
+    consoleSelect(top);
     gotoxy(0, 0);
     struct xmp_module *xm = mi.mod;
     int toscroll = *f;
@@ -143,11 +188,6 @@ void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
     }
 
     for (int i = toscroll; i < chmax; i++) {
-        // Does it o/f?
-        /*if(i>=line_lim) {
-                    consoleSelect(&bot);
-                    gotoxy(i+4-line_lim,0);
-            }*/
         // Parse note
         struct xmp_channel_info ci = fi.channel_info[i];
         struct xmp_event ev = ci.event;
@@ -166,8 +206,9 @@ void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
         }
         parse_fx(i, fx_buf, old_fxt, old_fxp, ev.fxt, ev.fxp, 1, false);
         parse_fx(i, fx2_buf, old_f2t, old_f2p, ev.f2t, ev.f2p, 1, true);
-        printf("%2d:%c%02x %s %02x %02d%02d %5x %s %s\n", i + 1,
+        printf("%2d:%c%02x %s.%s%-4x %02x %02d%02d%5x %s %s\n", i + 1,
                ev.note != 0 ? '!' : ci.volume == 0 ? ' ' : 'G', ci.instrument, buf,
+               ci.pitchbend < 0 ? "-" : "+", ci.pitchbend < 0 ? -(unsigned)ci.pitchbend : ci.pitchbend,
                ci.pan, ci.volume, ev.vol, ci.position, fx_buf, fx2_buf);
     }
 }
@@ -175,7 +216,7 @@ void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
 void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
                           PrintConsole *bot, int *f) {
     // int line_lim = isN3DS?29:16;
-    consoleSelect(&top);
+    consoleSelect(top);
     gotoxy(0, 0);
     int toscroll = *f;
     struct xmp_module *xm = mi.mod;
@@ -210,7 +251,7 @@ void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
 void show_sample_info(struct xmp_module_info mi, PrintConsole *top,
                       PrintConsole *bot, int *f) {
     int toscroll = *f;
-    consoleSelect(&top);
+    consoleSelect(top);
     gotoxy(0, 0);
     struct xmp_module *xm = mi.mod;
     int smpmax = 0;

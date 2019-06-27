@@ -62,7 +62,6 @@ LIBS	:= -lxmp -lctru -lm
 APP_TITLE := $(TARGET)
 APP_DESCRIPTION := mmh... libxmp...
 APP_AUTHOR := Chromaryu
-ICON := 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
