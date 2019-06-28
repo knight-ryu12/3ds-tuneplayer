@@ -57,7 +57,7 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
     }
 
     snprintf(_arg1, 6, "-----");
-
+    uint8_t h, l;
     switch (fxt) {
         case 0:
             if (!fxp) {  // need to be real, not fake one
@@ -97,23 +97,21 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
             break;
         case 0xa:
         case 0xa4:
-            if (isFT) {
-                if ((_fxp & 0x0F) == 0 && (_fxp >> 4 & 0xF) > 0)  // Up
-                    snprintf(_arg1, 6, "VOLsU");
-                else if (((_fxp >> 4) & 0xF) == 0 && (_fxp & 0x0F) > 0)  // Down
-                    snprintf(_arg1, 6, "VOLsD");
-            } else {
-                // S3M/IT
-                int h, l;
-                h = (_fxp >> 4) & 0xF;
-                l = _fxp & 0xF;
-                if (l == 0xF && h != 0)
-                    snprintf(_arg1, 6, "VOLsU");
-                else if (h == 0xf && l != 0)
-                    snprintf(_arg1, 6, "VOLsD");
-                else if (h == 0xf || l == 0xf)
-                    snprintf(_arg1, 6, "VOLfS");
-            }
+            if (isFT) goto ft2;
+            // S3M/IT
+            h = (_fxp >> 4) & 0xF;
+            l = _fxp & 0xF;
+            if (l == 0xF && h != 0)
+                snprintf(_arg1, 6, "VOLsU");
+            else if (h == 0xf && l != 0)
+                snprintf(_arg1, 6, "VOLsD");
+            else if (h == 0xf || l == 0xf)
+                snprintf(_arg1, 6, "VOLfS");
+        ft2:
+            if ((_fxp & 0x0F) == 0 && (_fxp >> 4 & 0xF) > 0)  // Up
+                snprintf(_arg1, 6, "VOLsU");
+            else if (((_fxp >> 4) & 0xF) == 0 && (_fxp & 0x0F) > 0)  // Down
+                snprintf(_arg1, 6, "VOLsD");
             break;
         case 0xc:
             snprintf(_arg1, 6, "VOLsT");
@@ -121,7 +119,6 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
 
         case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
                     // it down
-            uint8_t h, l;
             h = (fxp >> 4) & 0xF;
             l = fxp & 0xF;
             fxp = l;
@@ -148,7 +145,7 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
                     break;
             }
             break;
-
+        case 0xa3:
         case 0xf:
             snprintf(_arg1, 6, "SPDsT");
             break;
@@ -156,11 +153,10 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
         case 0x1b:
             snprintf(_arg1, 6, "RETrG");
             break;
-
         default:
-            snprintf(_arg1, 6, "-----");
+            snprintf(_arg1, 6, "???%02X", fxt);
     }
-    snprintf(buf, 20, "%-5.5s%02X%s%02X\e[0m", _arg1, fxt,
+    snprintf(buf, 20, "%-5.5s%s%02X\e[0m", _arg1,
              isEFFM ? "\e[36m" : isNNA ? "\e[31m" : "\e[0m", _fxp);
     // free(_arg1);
 }
@@ -204,9 +200,9 @@ void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
             snprintf(buf, 15, "---");
             old_note[i] = 0;
         }
-        parse_fx(i, fx_buf, old_fxt, old_fxp, ev.fxt, ev.fxp, 1, false);
-        parse_fx(i, fx2_buf, old_f2t, old_f2p, ev.f2t, ev.f2p, 1, true);
-        printf("%2d:%c%02x %s.%s%-4x %02x %02d%02d%5x %s %s\n", i + 1,
+        parse_fx(i, fx_buf, old_fxt, old_fxp, ev.fxt, ev.fxp, isFT, false);
+        parse_fx(i, fx2_buf, old_f2t, old_f2p, ev.f2t, ev.f2p, isFT, true);
+        printf("%2d:%c%02x %s%s%-4x %02x %02d%02d %5x %s %s\n", i + 1,
                ev.note != 0 ? '!' : ci.volume == 0 ? ' ' : 'G', ci.instrument, buf,
                ci.pitchbend < 0 ? "-" : "+", ci.pitchbend < 0 ? -(unsigned)ci.pitchbend : ci.pitchbend,
                ci.pan, ci.volume, ev.vol, ci.position, fx_buf, fx2_buf);

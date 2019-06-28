@@ -36,7 +36,6 @@ int track_quirk[1] = {XMP_MODE_ST3};
 
 volatile int runSound, playSound;
 struct xmp_frame_info fi;
-// volatile int runRead, doRead;
 volatile uint64_t d_t;
 volatile uint32_t _PAUSE_FLAG;
 
@@ -61,7 +60,6 @@ void clean_console(PrintConsole *top, PrintConsole *bot) {
 int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, int *isFT) {
     printf("Loading....\n");
     struct xmp_test_info ti;
-    int modeparam;
     printf("%s\n", path);
     xmp_end_player(c);
     xmp_release_module(c);
@@ -70,15 +68,15 @@ int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, int *isFT) {
         return 2;
     }
     printf("%s\n%s\n", ti.name, ti.type);
-    if (strstr(ti.type, "XM") != NULL) {
-        printf("XM Mode\n");
-        *isFT = 1;
-    } else
-        *isFT = 0;
     if (initXMP(path, c, mi) != 0) {
         printf("Error on initXMP!!\n");
         return 1;
     }
+    if (strstr(mi->mod->type, "XM") != NULL) {
+        printf("XM Mode\n");
+        *isFT = 1;
+    } else
+        *isFT = 0;
     svcSleepThread(150000000);  // wait 1.s
     xmp_start_player(c, SAMPLE_RATE, 0);
     return 0;

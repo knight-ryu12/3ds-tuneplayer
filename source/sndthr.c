@@ -6,9 +6,9 @@
 
 #define N3DS_BLOCK 4096
 #define O3DS_BLOCK 6144
+// can someone find sweet spot?
 
 extern int runSound, playSound;
-extern int runRead, doRead;
 extern struct xmp_frame_info fi;
 extern uint64_t d_t;
 
@@ -27,7 +27,7 @@ Result setup_ndsp() {
     return 0;
 }
 
-int initXMP(const char *path, xmp_context c, struct xmp_module_info *mi) {
+int initXMP(char *path, xmp_context c, struct xmp_module_info *mi) {
     if (xmp_load_module(c, path) != 0) return 1;
     xmp_get_module_info(c, mi);
     //xmp_set_player(c,XMP_PLAYER_INTERP,XMP_INTERP_);
@@ -67,21 +67,13 @@ void soundThread(void *arg) {
             if (!runSound) break;
             _PAUSE_FLAG = 0;
         }
-        /*
-		while(runSound && !playSound) {
-			_PAUSE_FLAG = 1;
-		//svcSleepThread(10e9);
-		}
-		_PAUSE_FLAG = 0;
-		*/
-        //xmp_play_frame(c);
+
         xmp_get_frame_info(c, &fi);
 
         int16_t *sbuf = (int16_t *)waveBuf[cur_wvbuf].data_vaddr;
         xmp_play_buffer(c, sbuf, BLOCK, 0);
         waveBuf[cur_wvbuf].nsamples = BLOCK / 4;
-        //memcpy(sbuf,fi.buffer,fi.buffer_size);
-        //uf = fi.buffer;
+
         DSP_FlushDataCache(sbuf, BLOCK);
         ndspChnWaveBufAdd(CHANNEL, &waveBuf[cur_wvbuf]);
         cur_wvbuf ^= 1;
@@ -93,14 +85,5 @@ exit:
     ndspExit();
     linearFree(sample);
     runSound = 0;
-    threadExit(0);
-}
-
-void readThread(void *arg) {
-    xmp_context c = (xmp_context)arg;
-    while (runRead) {
-        while (!doRead) svcSleepThread(10e9 / 50);
-        xmp_get_frame_info(c, &fi);
-    }
     threadExit(0);
 }
