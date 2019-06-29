@@ -4,6 +4,7 @@
 #include <string.h>
 #include <xmp.h>
 #include "fastmode.h"
+#include "linkedlist.h"
 #include "sndthr.h"
 #include "song_info.h"
 
@@ -93,6 +94,7 @@ int main(int argc, char *argv[]) {
     Thread snd_thr = NULL;
     struct xmp_module_info mi;
     static int isFT = 0;
+    LinkedList ll = create_list();
     // cur_tick = svcGetSystemTick();
     gfxInitDefault();
     consoleInit(GFX_TOP, &top);
