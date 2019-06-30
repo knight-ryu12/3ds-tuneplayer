@@ -1,3 +1,3 @@
-# template
+# 3ds-tuneplayer
 
-This is a template for starting new 3DS libctru projects.
+made using libxmp.
