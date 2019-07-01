@@ -1,3 +1,7 @@
+3ds-libxmp/3ds-libxmp-git
+3ds-libxmp/pkg
+3ds-libxmp/src
+3ds-libxmp/*.xz
 build/
 .vscode/
 *.3dsx
