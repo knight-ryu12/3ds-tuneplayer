@@ -15,6 +15,7 @@ void free_list(LinkedList* list) {
             // it was strdup'd, needs to be freed
             if (front) {
                 free(front->track_path);
+                free(front->directory);
                 next = front->next;
                 if (next)
                     next->prev = NULL;  // In case back ends up needing to free it
@@ -24,6 +25,7 @@ void free_list(LinkedList* list) {
 
             if (back) {
                 free(back->track_path);
+                free(back->directory);
                 prev = back->prev;
                 if (prev)
                     prev->next = NULL;  // In case front ends up needing to free it
@@ -38,9 +40,10 @@ void free_list(LinkedList* list) {
     }
 }
 
-LLNode* create_node(const char* path) {
+LLNode* create_node(const char* path, const char* dir) {
     LLNode* node = (LLNode*)malloc(sizeof(LLNode));
     node->track_path = strdup(path);
+    node->directory = strdup(dir);
     for (unsigned i = 0; i < NODE_QUIRKS_AMOUNT; ++i)
         node->track_quirk[i] = 0;
     node->prev = NULL;

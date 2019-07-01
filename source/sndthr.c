@@ -31,7 +31,7 @@ int initXMP(char *path, xmp_context c, struct xmp_module_info *mi) {
     if (xmp_load_module(c, path) != 0) return 1;
     xmp_get_module_info(c, mi);
     //xmp_set_player(c,XMP_PLAYER_INTERP,XMP_INTERP_);
-    xmp_set_player(c, XMP_PLAYER_VOICES, 256);
+    //xmp_set_player(c, XMP_PLAYER_VOICES, 256);
     return 0;
 }
 

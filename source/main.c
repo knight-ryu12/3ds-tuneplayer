@@ -1,7 +1,9 @@
 #include <3ds.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <xmp.h>
 #include "fastmode.h"
 #include "linkedlist.h"
@@ -13,26 +15,6 @@
 #define ENABLE_ROMFS
 
 char *romfs_path = "romfs:/";
-char *track[19] = {"romfs:/A94FINAL.S3M",
-                   "romfs:/_sunlight_.xm",
-                   "romfs:/reed-imploder.xm",
-                   "romfs:/12oz.s3m",
-                   "romfs:/last step.xm",
-                   "romfs:/mindrmr.xm",
-                   "romfs:/seffren&jelly-o_m_g.xm",
-                   "romfs:/resonance2.mod",
-                   "romfs:/bz_fil.it",
-                   "romfs:/ASTRAY.S3M",
-                   "romfs:/seen_an_angel.xm",
-                   "romfs:/sv_ttt.xm",
-                   "romfs:/milky.xm",
-                   "romfs:/ICEFRONT.S3M",
-                   "romfs:/ghost_in_the_cli.mod",
-                   "romfs:/universalnetwork2_real.xm",
-                   "romfs:/pod.s3m",
-                   "romfs:/vincent_voois_-_the_meaning_of_life.xm",
-                   "romfs:/JEFF93.IT"};
-int track_size = 19;
 int track_quirk[1] = {XMP_MODE_ST3};
 
 volatile int runSound, playSound;
@@ -58,10 +40,23 @@ void clean_console(PrintConsole *top, PrintConsole *bot) {
     consoleClear();
 }
 
-int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, int *isFT) {
+void searchsong(LinkedList *list) {
+    printf("Scanning...\n");
+    DIR *romfsdir = opendir("romfs:/");
+    if (romfsdir == NULL) return;
+    struct dirent *de;
+    for (de = readdir(romfsdir); de != NULL; de = readdir(romfsdir)) {
+        if (de->d_name[0] == '.') continue;
+        printf("Adding %s\n", de->d_name);
+        add_single_node(list, create_node(de->d_name, "romfs:/"));
+    }
+}
+
+int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT) {
     printf("Loading....\n");
     struct xmp_test_info ti;
     printf("%s\n", path);
+    chdir(dir);
     xmp_end_player(c);
     xmp_release_module(c);
     if (xmp_test_module(path, &ti) != 0) {
@@ -89,12 +84,12 @@ int main(int argc, char *argv[]) {
     // uint64_t cur_tick,init_tick;
     int32_t main_prio;
     uint8_t info_flag = 0b00000000;
-    int32_t i = 0;
     int model;
     Thread snd_thr = NULL;
     struct xmp_module_info mi;
     static int isFT = 0;
     LinkedList ll = create_list();
+    LLNode *current_song = NULL;
     // cur_tick = svcGetSystemTick();
     gfxInitDefault();
     consoleInit(GFX_TOP, &top);
@@ -106,16 +101,26 @@ int main(int argc, char *argv[]) {
     printf("romFSInit %08lx\n", res);
     res = setup_ndsp();
     printf("setup_ndsp: %08lx\n", res);
+    res = fsInit();
+    printf("fsInit: %08lx\n", res);
+    res = errfInit();
+    printf("errfInit: %08lx\n", res);
     if (R_FAILED(res)) {
         printf("Failed to initalize NDSP...\n");
         goto exit;
     }
     xmp_context c = xmp_create_context();
 
+    // Saerch for songs; first.
+    searchsong(&ll);
+    current_song = ll.front;
+    /*
     printf("Registered Songs: %d\n", track_size);
+
     for (int i = 0; i < track_size; i++) {
         printf("%d: %s\n", i, track[i]);
     }
+    */
 
     hidScanInput();
     uint32_t h = hidKeysHeld();
@@ -133,7 +138,7 @@ int main(int argc, char *argv[]) {
         _debug_pause();
     }
 
-    if (loadSong(c, &mi, track[i], &isFT) != 0) {
+    if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
         printf("Error on loadSong !!!?\n");
         goto exit;
     };
@@ -161,11 +166,15 @@ int main(int argc, char *argv[]) {
 
         // Check loop cnt
         if (fi.loop_count > 0) {
+            /*
             i++;
             if (i > track_size - 1) {
                 i = 0;
                 continue;
-            }
+            }*/
+            current_song = current_song->next;
+            if (current_song == NULL)
+                current_song = ll.front;
             playSound = 0;
             while (!_PAUSE_FLAG) {
                 svcSleepThread(20000);
@@ -173,8 +182,9 @@ int main(int argc, char *argv[]) {
             xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSong(c, &mi, track[i], &isFT) != 0) {
+            if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
+                //ERRF_ThrowResultWithMessage();
                 goto exit;
             }
             //_debug_pause();
@@ -229,11 +239,9 @@ int main(int argc, char *argv[]) {
         }
 
         if (kDown & KEY_RIGHT) {
-            i++;
-            if (i > track_size - 1) {
-                i = 0;
-                continue;
-            }
+            current_song = current_song->next;
+            if (current_song == NULL)
+                current_song = ll.front;
             playSound = 0;
             while (!_PAUSE_FLAG) {
                 svcSleepThread(20000);
@@ -241,7 +249,7 @@ int main(int argc, char *argv[]) {
             xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSong(c, &mi, track[i], &isFT) != 0) {
+            if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
                 goto exit;
             };
@@ -252,11 +260,9 @@ int main(int argc, char *argv[]) {
         }
 
         if (kDown & KEY_LEFT) {
-            i--;
-            if (i < 0) {
-                i = track_size - 1;
-                continue;
-            }
+            current_song = current_song->prev;
+            if (current_song == NULL)
+                current_song = ll.back;
             playSound = 0;
             while (!_PAUSE_FLAG) {
                 svcSleepThread(20000);
@@ -264,7 +270,7 @@ int main(int argc, char *argv[]) {
             xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSong(c, &mi, track[i], &isFT) != 0) {
+            if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
                 goto exit;
             };
@@ -288,6 +294,7 @@ exit:
     xmp_end_player(c);
     xmp_release_module(c);
     xmp_free_context(c);
+    free_list(&ll);
     ndspExit();
     romfsExit();
     gfxExit();

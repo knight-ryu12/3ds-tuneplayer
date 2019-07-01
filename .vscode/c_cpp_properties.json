@@ -3,10 +3,15 @@
         {
             "name": "Linux",
             "includePath": [
+                "/opt/devkitpro/portlibs/3ds/include/**",
+                "C:/msys64/opt/devkitpro/portlibs/3ds/include/**",
                 "${workspaceFolder}/**",
                 "/opt/devkitpro/libctru/**",
                 "/opt/devkitpro/devkitARM/**",
-                "/opt/devkitpro/libctru/include"
+                "/opt/devkitpro/libctru/include",
+                "C:/msys64/opt/devkitpro/libctru/**",
+                "C:/msys64/opt/devkitpro/devkitARM/**",
+                "C:/msys64/opt/devkitpro/libctru/include/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
