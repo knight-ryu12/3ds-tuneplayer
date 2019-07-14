@@ -1,5 +1,6 @@
 #include <3ds.h>
 #include <dirent.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,8 +13,6 @@
 
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
-#define ENABLE_ROMFS
-
 char *romfs_path = "romfs:/";
 int track_quirk[1] = {XMP_MODE_ST3};
 
@@ -22,7 +21,15 @@ struct xmp_frame_info fi;
 volatile uint64_t d_t;
 volatile uint32_t _PAUSE_FLAG;
 
-char strbuf[255] = "romfs:/";
+char *search_path[3] = {"romfs:/", "sdmc:/mod", "sdmc:/3ds/3ds-tuneplayer/mod"};
+
+void sendError(char *error, int code) {
+    errorConf err;
+    errorInit(&err, ERROR_CODE, CFG_LANGUAGE_EN);
+    errorText(&err, error);
+    errorCode(&err, code);
+    errorDisp(&err);
+}
 
 void _debug_pause() {
     printf("Press start.\n");
@@ -40,16 +47,22 @@ void clean_console(PrintConsole *top, PrintConsole *bot) {
     consoleClear();
 }
 
-void searchsong(LinkedList *list) {
-    printf("Scanning...\n");
-    DIR *romfsdir = opendir("romfs:/");
-    if (romfsdir == NULL) return;
+uint32_t searchsong(const char *searchPath, LinkedList *list) {
+    uint32_t count = 0;
+    printf("Scanning %s\n", searchPath);
+    DIR *searchDir = opendir(searchPath);
+    if (searchDir == NULL) {
+        printf("Folder non-existent, skipping.\n");
+        return 0;
+    }  // Folder non-existent;
     struct dirent *de;
-    for (de = readdir(romfsdir); de != NULL; de = readdir(romfsdir)) {
-        if (de->d_name[0] == '.') continue;
+    for (de = readdir(searchDir); de != NULL; de = readdir(searchDir)) {
+        if (de->d_name[0] == '.') continue;  // don't include . or .. and dot-files
         printf("Adding %s\n", de->d_name);
-        add_single_node(list, create_node(de->d_name, "romfs:/"));
+        add_single_node(list, create_node(de->d_name, searchPath));
+        count++;
     }
+    return count;
 }
 
 int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT) {
@@ -81,14 +94,13 @@ int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, i
 int main(int argc, char *argv[]) {
     Result res;
     PrintConsole top, bot;
-    // uint64_t cur_tick,init_tick;
+    uint32_t song_num = 0;
     int32_t main_prio;
     uint8_t info_flag = 0b00000000;
     int model;
     Thread snd_thr = NULL;
     struct xmp_module_info mi;
     static int isFT = 0;
-    LinkedList ll = create_list();
     LLNode *current_song = NULL;
     // cur_tick = svcGetSystemTick();
     gfxInitDefault();
@@ -99,28 +111,34 @@ int main(int argc, char *argv[]) {
     model = try_speedup();
     res = romfsInit();
     printf("romFSInit %08lx\n", res);
+    if (R_FAILED(res)) {
+        printf("Failed to initalize romfs...\n");
+        goto exit;
+    }
     res = setup_ndsp();
     printf("setup_ndsp: %08lx\n", res);
-    res = fsInit();
-    printf("fsInit: %08lx\n", res);
-    res = errfInit();
-    printf("errfInit: %08lx\n", res);
     if (R_FAILED(res)) {
         printf("Failed to initalize NDSP...\n");
         goto exit;
     }
+    res = errfInit();
+    printf("errfInit: %08lx\n", res);
+    // Forcing Errdisp
+    //ERRF_ThrowResultWithMessage(0xd800456a, "FailTest!");
+
     xmp_context c = xmp_create_context();
 
+    LinkedList ll = create_list();
     // Saerch for songs; first.
-    searchsong(&ll);
-    current_song = ll.front;
-    /*
-    printf("Registered Songs: %d\n", track_size);
-
-    for (int i = 0; i < track_size; i++) {
-        printf("%d: %s\n", i, track[i]);
+    song_num += searchsong(search_path[0], &ll);
+    song_num += searchsong(search_path[1], &ll);
+    song_num += searchsong(search_path[2], &ll);
+    // TODO: do better job at this
+    if (song_num == 0) {
+        printf("There's no song at any of folders I've searched!\n");
+        goto exit;
     }
-    */
+    current_song = ll.front;
 
     hidScanInput();
     uint32_t h = hidKeysHeld();
@@ -166,12 +184,6 @@ int main(int argc, char *argv[]) {
 
         // Check loop cnt
         if (fi.loop_count > 0) {
-            /*
-            i++;
-            if (i > track_size - 1) {
-                i = 0;
-                continue;
-            }*/
             current_song = current_song->next;
             if (current_song == NULL)
                 current_song = ll.front;
@@ -274,7 +286,6 @@ int main(int argc, char *argv[]) {
                 printf("Error on loadSong !!!?\n");
                 goto exit;
             };
-            //_debug_pause();
             clean_console(&top, &bot);
             scroll = 0;
             playSound = 1;
