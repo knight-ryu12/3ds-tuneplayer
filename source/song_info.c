@@ -59,6 +59,7 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
     }
 
     snprintf(_arg1, 6, "-----");
+    handleFX(fxt, _fxp, _arg1, isFT);
 
     snprintf(buf, 20, "%-5.5s%s%02X\e[0m", _arg1,
              isEFFM ? "\e[36m" : isNNA ? "\e[31m" : "\e[0m", _fxp);
