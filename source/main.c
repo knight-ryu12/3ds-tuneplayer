@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
     res = romfsInit();
     printf("romFSInit %08lx\n", res);
     if (R_FAILED(res)) {
+        sendError("Failed to initalize romfs... please check filesystem and such!\n", 0xFFFF0000);
         printf("Failed to initalize romfs...\n");
         goto exit;
     }
@@ -75,6 +76,7 @@ int main(int argc, char *argv[]) {
     printf("setup_ndsp: %08lx\n", res);
     if (R_FAILED(res)) {
         printf("Failed to initalize NDSP...\n");
+        sendError("Failed to initalize NDSP... have you dumped your DSP rom?\n", 0xFFFF0001);
         goto exit;
     }
     res = errfInit();
@@ -91,7 +93,8 @@ int main(int argc, char *argv[]) {
     song_num += searchsong(search_path[2], &ll);
     // TODO: do better job at this
     if (song_num == 0) {
-        printf("There's no song at any of folders I've searched!\n");
+        //printf("There's no song at any of folders I've searched!\n");
+        sendError("There's no songs playable!\n", 0xC0000000);
         goto exit;
     }
     current_song = ll.front;
@@ -133,6 +136,7 @@ int main(int argc, char *argv[]) {
     consoleSelect(&top);
 
     int scroll = 0;
+    int subscroll = 0;
     // Main loop
     while (aptMainLoop()) {
         gspWaitForVBlank();
@@ -152,6 +156,7 @@ int main(int argc, char *argv[]) {
             gotoxy(0, 0);
             if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
+                sendError("Error on loadsong...?\n", 0xFFFF0003);
                 //ERRF_ThrowResultWithMessage();
                 goto exit;
             }
@@ -163,15 +168,17 @@ int main(int argc, char *argv[]) {
 
         show_generic_info(fi, mi, &top, &bot);
         /// 000 shows default info.
-        if (info_flag & 1)
-            show_instrument_info(mi, &top, &bot, &scroll);
-        else if (info_flag & 2)
+        if (info_flag & 1) {
+            show_instrument_info(mi, &top, &bot, &scroll, subscroll);
+            show_channel_intrument_info(fi, mi, &top, &bot, &subscroll);
+        } else if (info_flag & 2)
             show_sample_info(mi, &top, &bot, &scroll);
         else
-            show_channel_info(fi, mi, &top, &bot, &scroll, isFT);  // Fall back
+            show_channel_info(&fi, &mi, &top, &bot, &scroll, isFT);  // Fall back
         hidScanInput();
         // Your code goes here
         u32 kDown = hidKeysDown();
+        u32 kHeld = hidKeysHeld();
 
         if (kDown & KEY_A) {
             clean_console(&top, &bot);
@@ -191,18 +198,24 @@ int main(int argc, char *argv[]) {
         if (kDown & KEY_SELECT) playSound ^= 1;
 
         if (kDown & KEY_DOWN) {
-            struct xmp_module *xm = mi.mod;
-            //  does it have atleast 30 inst to show?
-            if (xm->ins > 30) {
-                scroll++;
-            } else if (xm->chn > 30) {
-                scroll++;
-            } else if (xm->smp > 30) {
-                scroll++;
+            if (kHeld & KEY_L) {
+                subscroll++;
+            } else {
+                struct xmp_module *xm = mi.mod;
+                //  does it have atleast 30 inst to show?
+                if (xm->ins > 30) {
+                    scroll++;
+                } else if (xm->chn > 30) {
+                    scroll++;
+                } else if (xm->smp > 30) {
+                    scroll++;
+                }
             }
         }
 
         if (kDown & KEY_UP) {
+            if (kHeld & KEY_L)
+                if (subscroll != 0 && subscroll >= 0) subscroll--;
             if (scroll != 0 && scroll >= 0) scroll--;
         }
 

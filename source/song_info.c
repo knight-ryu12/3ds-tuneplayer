@@ -24,7 +24,7 @@ void show_generic_info(struct xmp_frame_info fi, struct xmp_module_info mi,
     snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi.time / 1000 / 60, fi.time / 1000 % 60, fi.total_time / 1000 / 60, fi.total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
-    printf("%02x %02x %02x %1x %3d %1d %s\n", fi.pos, fi.pattern, fi.row,
+    printf("P%02x p%02x R%02x S%1x B%3d %1d %s\n", fi.pos, fi.pattern, fi.row,
            fi.speed, fi.bpm, fi.loop_count, secondbuf);
     printf("%s\n%s\n", mi.mod->name, mi.mod->type);
 }
@@ -66,11 +66,11 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
     // free(_arg1);
 }
 
-void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
+void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int *f, int isFT) {
     consoleSelect(top);
     gotoxy(0, 0);
-    struct xmp_module *xm = mi.mod;
+    struct xmp_module *xm = mi->mod;
     int toscroll = *f;
     int cinf = xm->chn;
     int chmax = 0;
@@ -90,7 +90,7 @@ void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
 
     for (int i = toscroll; i < chmax; i++) {
         // Parse note
-        struct xmp_channel_info ci = fi.channel_info[i];
+        struct xmp_channel_info ci = fi->channel_info[i];
         struct xmp_event ev = ci.event;
         if (ev.note > 0x80)
             snprintf(buf, 15, "===");
@@ -115,8 +115,7 @@ void show_channel_info(struct xmp_frame_info fi, struct xmp_module_info mi,
 }
 
 void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
-                          PrintConsole *bot, int *f) {
-    // int line_lim = isN3DS?29:16;
+                          PrintConsole *bot, int *f, int hilight) {
     consoleSelect(top);
     gotoxy(0, 0);
     int toscroll = *f;
@@ -142,8 +141,8 @@ void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
     struct xmp_instrument *xi;
     for (int i = toscroll; i < insmax; i++) {
         xi = &xm->xxi[i];
-        if (isind && toscroll == insmax - 1) ind_en = true;
-        printf("%2x:\"%-32.32s\" %02x%04x %c%c%c%c\n", i, xi->name, xi->vol,
+        //if (isind && toscroll == insmax - 1) ind_en = true;
+        printf("%s%2x\e[0m:\"%-32.32s\" %02x%04x %c%c%c%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i, xi->name, xi->vol,
                xi->rls, xi->aei.flg & 1 ? 'A' : '-', xi->pei.flg & 1 ? 'P' : '-',
                xi->fei.flg & 1 ? 'F' : '-', ind_en ? 'v' : ' ');
     }
@@ -186,4 +185,10 @@ void show_sample_info(struct xmp_module_info mi, PrintConsole *top,
 
 void show_channel_intrument_info(struct xmp_frame_info fi,
                                  struct xmp_module_info mi, PrintConsole *top,
-                                 PrintConsole *bot, int *f) {}
+                                 PrintConsole *bot, int *s) {
+    consoleSelect(bot);
+    struct xmp_instrument *xi;
+    xi = &mi.mod->xxi[*s];
+    if (xi == NULL) return;
+    printf("%d\n", xi->rls);
+}
