@@ -10,11 +10,11 @@
 #include "linkedlist.h"
 #include "sndthr.h"
 #include "song_info.h"
+#include "songhandler.h"
 
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
 char *romfs_path = "romfs:/";
-int track_quirk[1] = {XMP_MODE_ST3};
 
 volatile int runSound, playSound;
 struct xmp_frame_info fi;
@@ -45,50 +45,6 @@ void clean_console(PrintConsole *top, PrintConsole *bot) {
     consoleClear();
     consoleSelect(bot);
     consoleClear();
-}
-
-uint32_t searchsong(const char *searchPath, LinkedList *list) {
-    uint32_t count = 0;
-    printf("Scanning %s\n", searchPath);
-    DIR *searchDir = opendir(searchPath);
-    if (searchDir == NULL) {
-        printf("Folder non-existent, skipping.\n");
-        return 0;
-    }  // Folder non-existent;
-    struct dirent *de;
-    for (de = readdir(searchDir); de != NULL; de = readdir(searchDir)) {
-        if (de->d_name[0] == '.') continue;  // don't include . or .. and dot-files
-        printf("Adding %s\n", de->d_name);
-        add_single_node(list, create_node(de->d_name, searchPath));
-        count++;
-    }
-    return count;
-}
-
-int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT) {
-    printf("Loading....\n");
-    struct xmp_test_info ti;
-    printf("%s\n", path);
-    chdir(dir);
-    xmp_end_player(c);
-    xmp_release_module(c);
-    if (xmp_test_module(path, &ti) != 0) {
-        printf("Illegal module detected.\n");
-        return 2;
-    }
-    printf("%s\n%s\n", ti.name, ti.type);
-    if (initXMP(path, c, mi) != 0) {
-        printf("Error on initXMP!!\n");
-        return 1;
-    }
-    if (strstr(mi->mod->type, "XM") != NULL) {
-        printf("XM Mode\n");
-        *isFT = 1;
-    } else
-        *isFT = 0;
-    svcSleepThread(150000000);  // wait 1.s
-    xmp_start_player(c, SAMPLE_RATE, 0);
-    return 0;
 }
 
 int main(int argc, char *argv[]) {

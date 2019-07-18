@@ -1,4 +1,5 @@
 // Linkedlist.h made by LiquidFenrir; Thanks.
+#pragma once
 #include <stdlib.h>
 #define NODE_QUIRKS_AMOUNT 2
 
