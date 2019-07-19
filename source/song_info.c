@@ -74,14 +74,20 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
     int toscroll = *f;
     int cinf = xm->chn;
     int chmax = 0;
+    char ind = ' ';
+    bool isuind = false;
+    bool isdind = false;
     if (cinf <= 29) {
         toscroll = 0;
         chmax = cinf;
         // pat a (there's no exceeding limit. ignore f solely.)
     } else if (toscroll < cinf - 29) {
+        if (toscroll != 0) isuind = true;
+        isdind = true;
         chmax = 29 + toscroll;
         // pat b (there's scroll need. but f is under xm->ins-29)
     } else if (toscroll >= cinf - 29) {
+        isuind = true;
         toscroll = cinf - 29;
         chmax = cinf;
         *f = toscroll;
@@ -89,6 +95,9 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
     }
 
     for (int i = toscroll; i < chmax; i++) {
+        ind = ' ';
+        if (i == toscroll && isuind) ind = '^';  // There is a lot more to write
+        if (i == chmax - 1 && isdind) ind = 'v';
         // Parse note
         struct xmp_channel_info ci = fi->channel_info[i];
         struct xmp_event ev = ci.event;
@@ -107,10 +116,10 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         }
         parse_fx(i, fx_buf, old_fxt, old_fxp, ev.fxt, ev.fxp, isFT, false);
         parse_fx(i, fx2_buf, old_f2t, old_f2p, ev.f2t, ev.f2p, isFT, true);
-        printf("%2d:%c%02x %s%s%-4x %02x %02d%02d %5x %s %s\n", i + 1,
+        printf("%2d:%c%02x %s%s%-4x %02x %02d%02d %5x %s %s%c\n", i + 1,
                ev.note != 0 ? '!' : ci.volume == 0 ? ' ' : 'G', ci.instrument, buf,
                ci.pitchbend < 0 ? "-" : "+", ci.pitchbend < 0 ? -(unsigned)ci.pitchbend : ci.pitchbend,
-               ci.pan, ci.volume, ev.vol, ci.position, fx_buf, fx2_buf);
+               ci.pan, ci.volume, ev.vol, ci.position, fx_buf, fx2_buf, ind);
     }
 }
 
@@ -120,19 +129,21 @@ void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
     gotoxy(0, 0);
     int toscroll = *f;
     struct xmp_module *xm = mi.mod;
-    // char *ind = (char*)' ';
-    bool ind_en = false;
-    bool isind = false;
+    char ind = ' ';
+    bool isuind = false;
+    bool isdind = false;
     int insmax = 0;
     if (xm->ins <= 29) {
         toscroll = 0;
         insmax = xm->ins;
         // pat a (there's no exceeding limit. ignore f solely.)
     } else if (toscroll < xm->ins - 29) {
+        if (toscroll != 0) isuind = true;
+        isdind = true;
         insmax = 29 + toscroll;
-        isind = true;
         // pat b (there's scroll need. but f is under xm->ins-29)
     } else if (toscroll >= xm->ins - 29) {
+        isuind = true;
         toscroll = xm->ins - 29;
         insmax = xm->ins;
         *f = toscroll;
@@ -140,11 +151,14 @@ void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
     }
     struct xmp_instrument *xi;
     for (int i = toscroll; i < insmax; i++) {
+        ind = ' ';
+        if (i == toscroll && isuind) ind = '^';  // There is a lot more to write
+        if (i == insmax - 1 && isdind) ind = 'v';
         xi = &xm->xxi[i];
         //if (isind && toscroll == insmax - 1) ind_en = true;
         printf("%s%2x\e[0m:\"%-32.32s\" %02x%04x %c%c%c%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i, xi->name, xi->vol,
                xi->rls, xi->aei.flg & 1 ? 'A' : '-', xi->pei.flg & 1 ? 'P' : '-',
-               xi->fei.flg & 1 ? 'F' : '-', ind_en ? 'v' : ' ');
+               xi->fei.flg & 1 ? 'F' : '-', ind);
     }
 }
 
@@ -155,31 +169,41 @@ void show_sample_info(struct xmp_module_info mi, PrintConsole *top,
     gotoxy(0, 0);
     struct xmp_module *xm = mi.mod;
     int smpmax = 0;
+    char ind = ' ';
+    bool isuind = false;
+    bool isdind = false;
     if (xm->smp <= 29) {
         toscroll = 0;
         smpmax = xm->smp;
-        // pat a (there's no exceeding limit. ignore f solely.)
+        // pat a (there's no exceeding limit. ignore f solely.) // and not doing any indicator work
     } else if (toscroll < xm->smp - 29) {
+        if (toscroll != 0) isuind = true;
+        isdind = true;
         smpmax = 29 + toscroll;
         // pat b (there's scroll need. but f is under xm->ins-29)
     } else if (toscroll >= xm->smp - 29) {
+        isuind = true;
         toscroll = xm->smp - 29;
         smpmax = xm->smp;
         *f = toscroll;
         // pat c (toscroll reaches (xm->ins-29))
     }
     for (int i = toscroll; i < smpmax; i++) {
+        ind = ' ';
         struct xmp_sample *xs = &xm->xxs[i];
+        if (i == toscroll && isuind) ind = '^';  // There is a lot more to write
+        if (i == smpmax - 1 && isdind) ind = 'v';
         // ignore sample that doesn't have size
         // if(xs->len==0) continue;
 
-        printf("%2d:\"%-16.16s\" %5x%5x%5x %c%c%c%c%c%c\n", i, xs->name, xs->len,
+        printf("%2d:\"%-16.16s\" %5x%5x%5x %c%c%c%c%c%c%c\n", i, xs->name, xs->len,
                xs->lps, xs->lpe, xs->flg & XMP_SAMPLE_16BIT ? 'W' : '-',
                xs->flg & XMP_SAMPLE_LOOP ? 'L' : '-',
                xs->flg & XMP_SAMPLE_LOOP_BIDIR ? 'B' : '-',
                xs->flg & XMP_SAMPLE_LOOP_REVERSE ? 'R' : '-',
                xs->flg & XMP_SAMPLE_LOOP_FULL ? 'F' : '-',
-               xs->flg & XMP_SAMPLE_SYNTH ? 'S' : '-');
+               xs->flg & XMP_SAMPLE_SYNTH ? 'S' : '-',
+               ind);
     }
 }
 
