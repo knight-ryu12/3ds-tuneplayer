@@ -14,18 +14,34 @@
 
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
-char *romfs_path = "romfs:/";
+//char *romfs_path = "romfs:/";
 
 volatile int runSound, playSound;
 struct xmp_frame_info fi;
-volatile uint64_t d_t;
 volatile uint32_t _PAUSE_FLAG;
 
 char *search_path[3] = {"romfs:/", "sdmc:/mod", "sdmc:/3ds/3ds-tuneplayer/mod"};
 
+void printhelp() {
+    printf("GREETZ TO ALL TUNE MAKERS!\n");
+    printf("=CONTROLLS=\n");
+    printf("A = show channel info\n");
+    printf("B = show help\n");
+    printf("X = show instrument info\n");
+    printf("Y = show sample info\n");
+    printf("DPAD LR = change songs\n");
+    printf("DPAD UD = scroll\n");
+    printf("Press UD with L pressed = change bottom screen info\n");
+    printf("Start = Exit\n");
+    printf("Select = Pause\n");
+    printf("\n3ds-tuneplayer made by Chromaryu\n");
+    printf("using libxmp v%s\n", xmp_version);
+}
+
 void sendError(char *error, int code) {
+    // Seems like it doesn't like error message;
     errorConf err;
-    errorInit(&err, ERROR_CODE, CFG_LANGUAGE_EN);
+    errorInit(&err, ERROR_TEXT, CFG_LANGUAGE_EN);
     errorText(&err, error);
     errorCode(&err, code);
     errorDisp(&err);
@@ -58,6 +74,7 @@ int main(int argc, char *argv[]) {
     struct xmp_module_info mi;
     static int isFT = 0;
     LLNode *current_song = NULL;
+    bool isHelpprint = false;
     // cur_tick = svcGetSystemTick();
     gfxInitDefault();
     consoleInit(GFX_TOP, &top);
@@ -69,13 +86,13 @@ int main(int argc, char *argv[]) {
     printf("romFSInit %08lx\n", res);
     if (R_FAILED(res)) {
         sendError("Failed to initalize romfs... please check filesystem and such!\n", 0xFFFF0000);
-        printf("Failed to initalize romfs...\n");
+        //printf("Failed to initalize romfs...\n");
         goto exit;
     }
     res = setup_ndsp();
     printf("setup_ndsp: %08lx\n", res);
     if (R_FAILED(res)) {
-        printf("Failed to initalize NDSP...\n");
+        //printf("Failed to initalize NDSP...\n");
         sendError("Failed to initalize NDSP... have you dumped your DSP rom?\n", 0xFFFF0001);
         goto exit;
     }
@@ -83,7 +100,7 @@ int main(int argc, char *argv[]) {
     printf("errfInit: %08lx\n", res);
     // Forcing Errdisp
     //ERRF_ThrowResultWithMessage(0xd800456a, "FailTest!");
-
+    //sendError("TestError.\n", 0xFFFFFFFF);
     xmp_context c = xmp_create_context();
 
     LinkedList ll = create_list();
@@ -122,10 +139,8 @@ int main(int argc, char *argv[]) {
     clean_console(&top, &bot);
     xmp_get_frame_info(c, &fi);
     consoleSelect(&bot);
-    // gotoxy(2,0); printf("%s\n%s\n",mi.mod->name,mi.mod->type);
-    // s = APT_SetAppCpuTimeLimit(30);
-    // toxy(0,0); printf("SetAppCpuTimeLimit(): %08lx\n",res);
-    runSound = playSound = 1;
+    runSound = playSound = 1;  // Get Ready.
+
     svcGetThreadPriority(&main_prio, CUR_THREAD_HANDLE);
     struct thread_data a = {c, model};
     if (h & KEY_L) {
@@ -137,6 +152,7 @@ int main(int argc, char *argv[]) {
 
     int scroll = 0;
     int subscroll = 0;
+    uint64_t timer_cnt = 0;
     // Main loop
     while (aptMainLoop()) {
         gspWaitForVBlank();
@@ -166,25 +182,45 @@ int main(int argc, char *argv[]) {
             playSound = 1;
         }
 
-        show_generic_info(fi, mi, &top, &bot);
+        show_generic_info(&fi, &mi, &top, &bot);
         /// 000 shows default info.
         if (info_flag & 1) {
-            show_instrument_info(mi, &top, &bot, &scroll, subscroll);
-            show_channel_intrument_info(fi, mi, &top, &bot, &subscroll);
-        } else if (info_flag & 2)
-            show_sample_info(mi, &top, &bot, &scroll);
-        else
-            show_channel_info(&fi, &mi, &top, &bot, &scroll, isFT);  // Fall back
+            show_instrument_info(&mi, &top, &bot, &scroll, subscroll);
+            show_channel_intrument_info(&fi, &mi, &top, &bot, &subscroll);
+        } else if (info_flag & 2) {
+            show_sample_info(&mi, &top, &bot, &scroll);
+        } else if (info_flag & 4) {
+            //Help.
+            if (!isHelpprint) {
+                consoleSelect(&top);
+
+                isHelpprint = true;
+            }
+
+        } else {
+            show_channel_info(&fi, &mi, &top, &bot, &scroll, isFT, subscroll);  // Fall back
+            show_channel_info_btm(&fi, &mi, &top, &bot, &subscroll, isFT);
+        }
         hidScanInput();
+
         // Your code goes here
         u32 kDown = hidKeysDown();
         u32 kHeld = hidKeysHeld();
+
+        if (kHeld) {
+            timer_cnt++;
+            //printf("%d\n", timer_cnt);
+        } else
+            timer_cnt = 0;
 
         if (kDown & KEY_A) {
             clean_console(&top, &bot);
             info_flag = 0b000;
         }
         if (kDown & KEY_B) {
+            clean_console(&top, &bot);
+            isHelpprint = false;
+            info_flag = 0b100;
         }
         if (kDown & KEY_X) {
             clean_console(&top, &bot);
@@ -197,7 +233,7 @@ int main(int argc, char *argv[]) {
 
         if (kDown & KEY_SELECT) playSound ^= 1;
 
-        if (kDown & KEY_DOWN) {
+        if (kDown & KEY_DOWN) {  //|| (kHeld & KEY_DOWN && timer_cnt >= 50)) {
             if (kHeld & KEY_L) {
                 subscroll++;
             } else {
@@ -213,7 +249,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (kDown & KEY_UP) {
+        if (kDown & KEY_UP) {  //|| (kHeld & KEY_UP && timer_cnt >= 50)) {
             if (kHeld & KEY_L)
                 if (subscroll != 0 && subscroll >= 0) subscroll--;
             if (scroll != 0 && scroll >= 0) scroll--;
@@ -221,8 +257,7 @@ int main(int argc, char *argv[]) {
 
         if (kDown & KEY_RIGHT) {
             current_song = current_song->next;
-            if (current_song == NULL)
-                current_song = ll.front;
+            if (current_song == NULL) current_song = ll.front;
             playSound = 0;
             while (!_PAUSE_FLAG) {
                 svcSleepThread(20000);
@@ -242,8 +277,7 @@ int main(int argc, char *argv[]) {
 
         if (kDown & KEY_LEFT) {
             current_song = current_song->prev;
-            if (current_song == NULL)
-                current_song = ll.back;
+            if (current_song == NULL) current_song = ll.back;
             playSound = 0;
             while (!_PAUSE_FLAG) {
                 svcSleepThread(20000);

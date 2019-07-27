@@ -18,15 +18,15 @@ static uint8_t old_fxp[256];
 static uint8_t old_f2t[256];
 static uint8_t old_f2p[256];
 
-void show_generic_info(struct xmp_frame_info fi, struct xmp_module_info mi,
+void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot) {
     char secondbuf[32];
-    snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi.time / 1000 / 60, fi.time / 1000 % 60, fi.total_time / 1000 / 60, fi.total_time / 1000 % 60);
+    snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
-    printf("P%02x p%02x R%02x S%1x B%3d %1d %s\n", fi.pos, fi.pattern, fi.row,
-           fi.speed, fi.bpm, fi.loop_count, secondbuf);
-    printf("%s\n%s\n", mi.mod->name, mi.mod->type);
+    printf("P%02x p%02x R%02x S%1x B%3d %1d %s\n", fi->pos, fi->pattern, fi->row,
+           fi->speed, fi->bpm, fi->loop_count, secondbuf);
+    printf("%s\n%s\n", mi->mod->name, mi->mod->type);
 }
 
 void set_effect_memory(int ch, uint8_t fxp, uint8_t fxt, uint8_t *ofxt,
@@ -53,21 +53,20 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
             _fxp = get_effect_memory(ch, ofxt, ofxp);
             isEFFM = true;
         } else {
-            isNNA = true;
+            //isNNA = true;
             set_effect_memory(ch, fxp, fxt, ofxt, ofxp);
         }
     }
 
     snprintf(_arg1, 6, "-----");
     handleFX(fxt, _fxp, _arg1, isFT);
-
     snprintf(buf, 20, "%-5.5s%s%02X\e[0m", _arg1,
-             isEFFM ? "\e[36m" : isNNA ? "\e[31m" : "\e[0m", _fxp);
+             isEFFM ? "\e[36m" : "\e[0m", _fxp);
     // free(_arg1);
 }
 
 void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
-                       PrintConsole *top, PrintConsole *bot, int *f, int isFT) {
+                       PrintConsole *top, PrintConsole *bot, int *f, int isFT, int hilight) {
     consoleSelect(top);
     gotoxy(0, 0);
     struct xmp_module *xm = mi->mod;
@@ -116,19 +115,20 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         }
         parse_fx(i, fx_buf, old_fxt, old_fxp, ev.fxt, ev.fxp, isFT, false);
         parse_fx(i, fx2_buf, old_f2t, old_f2p, ev.f2t, ev.f2p, isFT, true);
-        printf("%2d:%c%02x %s%s%-4x %02x %02d%02d %5x %s %s%c\n", i + 1,
+        printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02d%02d %5x %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
                ev.note != 0 ? '!' : ci.volume == 0 ? ' ' : 'G', ci.instrument, buf,
                ci.pitchbend < 0 ? "-" : "+", ci.pitchbend < 0 ? -(unsigned)ci.pitchbend : ci.pitchbend,
                ci.pan, ci.volume, ev.vol, ci.position, fx_buf, fx2_buf, ind);
     }
 }
 
-void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
+void show_instrument_info(struct xmp_module_info *mi, PrintConsole *top,
                           PrintConsole *bot, int *f, int hilight) {
     consoleSelect(top);
     gotoxy(0, 0);
     int toscroll = *f;
-    struct xmp_module *xm = mi.mod;
+    struct xmp_instrument *xi;
+    struct xmp_module *xm = mi->mod;
     char ind = ' ';
     bool isuind = false;
     bool isdind = false;
@@ -149,7 +149,6 @@ void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
         *f = toscroll;
         // pat c (toscroll reaches (xm->ins-29))
     }
-    struct xmp_instrument *xi;
     for (int i = toscroll; i < insmax; i++) {
         ind = ' ';
         if (i == toscroll && isuind) ind = '^';  // There is a lot more to write
@@ -162,12 +161,12 @@ void show_instrument_info(struct xmp_module_info mi, PrintConsole *top,
     }
 }
 
-void show_sample_info(struct xmp_module_info mi, PrintConsole *top,
+void show_sample_info(struct xmp_module_info *mi, PrintConsole *top,
                       PrintConsole *bot, int *f) {
     int toscroll = *f;
     consoleSelect(top);
     gotoxy(0, 0);
-    struct xmp_module *xm = mi.mod;
+    struct xmp_module *xm = mi->mod;
     int smpmax = 0;
     char ind = ' ';
     bool isuind = false;
@@ -202,17 +201,39 @@ void show_sample_info(struct xmp_module_info mi, PrintConsole *top,
                xs->flg & XMP_SAMPLE_LOOP_BIDIR ? 'B' : '-',
                xs->flg & XMP_SAMPLE_LOOP_REVERSE ? 'R' : '-',
                xs->flg & XMP_SAMPLE_LOOP_FULL ? 'F' : '-',
-               xs->flg & XMP_SAMPLE_SYNTH ? 'S' : '-',
+               xs->flg & XMP_SAMPLE_SYNTH ? 'S' : '-',  // Is Adlib even used?
                ind);
     }
 }
 
-void show_channel_intrument_info(struct xmp_frame_info fi,
-                                 struct xmp_module_info mi, PrintConsole *top,
+void show_channel_intrument_info(struct xmp_frame_info *fi,
+                                 struct xmp_module_info *mi, PrintConsole *top,
                                  PrintConsole *bot, int *s) {
     consoleSelect(bot);
-    struct xmp_instrument *xi;
-    xi = &mi.mod->xxi[*s];
-    if (xi == NULL) return;
-    printf("%d\n", xi->rls);
+    struct xmp_instrument xi;
+    // How many inst do I have
+    if (mi->mod->ins < *s) {
+        *s = mi->mod->ins;
+        return;
+    }
+    xi = mi->mod->xxi[*s];
+
+    //if (xi == NULL) return;
+    printf("RLS %02x\n", xi.rls);
+    printf("NSM %02x\n", xi.nsm);
+}
+
+void show_channel_info_btm(struct xmp_frame_info *fi, struct xmp_module_info *mi,
+                           PrintConsole *top, PrintConsole *bot, int *s, int isFT) {
+    consoleSelect(bot);
+    if (mi->mod->chn < *s) {
+        *s = mi->mod->chn;
+        return;
+    }
+    int cur_smp_n = fi->channel_info[*s].sample;
+    struct xmp_sample *cur_smp = &mi->mod->xxs[cur_smp_n];
+    printf("\n=Info=\n");
+    printf("%2d: %02d %5d %5d\n", *s, cur_smp_n, cur_smp->len, fi->channel_info[*s].position);
+    printf("n:%-32.32s\n", cur_smp->name);
+    printf("m: %c%c\n", cur_smp->flg & XMP_SAMPLE_16BIT ? 'W' : '-', cur_smp->flg & XMP_SAMPLE_LOOP ? 'L' : '-');
 }

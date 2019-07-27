@@ -41,9 +41,6 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
         case 9:
             snprintf(_arg1, 6, "OFStS");
             break;
-        case 0x11:
-            snprintf(_arg1, 6, "GVOlS");
-            break;
         case 0xa:
         case 0xa4:
             if (isFT) goto ft2;
@@ -94,6 +91,13 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
                     break;
             }
             break;
+        case 0xd:
+            snprintf(_arg1, 6, "BREaK");
+            break;
+
+        case 0x11:
+            snprintf(_arg1, 6, "GVOlS");
+            break;
         case 0xa3:
         case 0xf:
             snprintf(_arg1, 6, "SPDsT");
@@ -102,6 +106,11 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
         case 0x1b:
             snprintf(_arg1, 6, "RETrG");
             break;
+
+        // S3M/IT
+        case 0x8d:
+            snprintf(_arg1, 6, "SURrD");
+
         default:
             snprintf(_arg1, 6, "???%02X", fxt);
     }
