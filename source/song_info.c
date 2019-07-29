@@ -17,9 +17,12 @@ static uint8_t old_fxt[256];
 static uint8_t old_fxp[256];
 static uint8_t old_f2t[256];
 static uint8_t old_f2p[256];
-
+extern uint64_t render_time;
+extern uint64_t screen_time;
+extern volatile uint32_t _PAUSE_FLAG;
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
-                       PrintConsole *top, PrintConsole *bot) {
+                       PrintConsole *top, PrintConsole *bot, int isN3DS) {
+    uint32_t SYS_TICK = isN3DS ? SYSCLOCK_ARM11_NEW : SYSCLOCK_ARM11;
     char secondbuf[32];
     snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
@@ -27,6 +30,8 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
     printf("P%02x p%02x R%02x S%1x B%3d %1d %s\n", fi->pos, fi->pattern, fi->row,
            fi->speed, fi->bpm, fi->loop_count, secondbuf);
     printf("%s\n%s\n", mi->mod->name, mi->mod->type);
+    printf("RT %02.3lfms ST %02.3lfms\n", render_time / (SYS_TICK / 1000.0), screen_time / (SYS_TICK / 1000.0));
+    printf("Status: %s\n", _PAUSE_FLAG ? "Paused" : "Playing");
 }
 
 void set_effect_memory(int ch, uint8_t fxp, uint8_t fxt, uint8_t *ofxt,
@@ -48,7 +53,7 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
     // ofxt[ch] = fxt;
 
     if ((fxt == 1 || fxt == 2 || fxt == 3 || fxt == 4 || fxt == 6 || fxt == 7 ||
-         fxt == 0xa || fxt == 0x11)) {
+         fxt == 0xa || fxt == 0x11 || fxt == 0xb4)) {
         if (fxp == 0) {
             _fxp = get_effect_memory(ch, ofxt, ofxp);
             isEFFM = true;
@@ -212,8 +217,8 @@ void show_channel_intrument_info(struct xmp_frame_info *fi,
     consoleSelect(bot);
     struct xmp_instrument xi;
     // How many inst do I have
-    if (mi->mod->ins < *s) {
-        *s = mi->mod->ins;
+    if (mi->mod->ins - 1 < *s) {
+        *s = mi->mod->ins - 1;
         return;
     }
     xi = mi->mod->xxi[*s];
@@ -226,14 +231,38 @@ void show_channel_intrument_info(struct xmp_frame_info *fi,
 void show_channel_info_btm(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                            PrintConsole *top, PrintConsole *bot, int *s, int isFT) {
     consoleSelect(bot);
-    if (mi->mod->chn < *s) {
-        *s = mi->mod->chn;
+    if (mi->mod->chn - 1 < *s) {
+        *s = mi->mod->chn - 1;
         return;
     }
     int cur_smp_n = fi->channel_info[*s].sample;
+    int cur_ins_n = fi->channel_info[*s].instrument;
     struct xmp_sample *cur_smp = &mi->mod->xxs[cur_smp_n];
+    struct xmp_instrument *xi = &mi->mod->xxi[cur_ins_n];
+    // does this cur_smp and xi exists?
+    if (mi->mod->ins < cur_ins_n) return;
+    if (mi->mod->smp < cur_smp_n) return;
+
+    // Inital thing
+    // Check loop flag
+    char *loopflg;
+    if (cur_smp->flg & XMP_SAMPLE_LOOP) {
+        if (cur_smp->flg & XMP_SAMPLE_LOOP_BIDIR)
+            loopflg = "BiDi";
+        else if (cur_smp->flg & XMP_SAMPLE_LOOP_REVERSE)
+            loopflg = "Revs";
+        else if (cur_smp->flg & XMP_SAMPLE_LOOP_FULL)
+            loopflg = "Full";
+        else
+            loopflg = "Forw";
+    } else
+        loopflg = "";
+
     printf("\n=Info=\n");
-    printf("%2d: %02d %5d %5d\n", *s, cur_smp_n, cur_smp->len, fi->channel_info[*s].position);
+    printf("Channel %2d: smp/ins%02d:%02d\n", *s, cur_smp_n, cur_ins_n);
+    printf("%-5x %-5x ls%-5x le%-5x\n", cur_smp->len, fi->channel_info[*s].position, cur_smp->lps, cur_smp->lpe);
     printf("n:%-32.32s\n", cur_smp->name);
-    printf("m: %c%c\n", cur_smp->flg & XMP_SAMPLE_16BIT ? 'W' : '-', cur_smp->flg & XMP_SAMPLE_LOOP ? 'L' : '-');
+    printf("m> %s\n%s\n", cur_smp->flg & XMP_SAMPLE_16BIT ? "16b" : "", loopflg);
+    printf("i:\"%-32.32s\"", xi->name);
+    printf("%d\n", xi->vol);
 }

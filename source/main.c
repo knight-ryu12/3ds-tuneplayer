@@ -16,11 +16,35 @@
 
 //char *romfs_path = "romfs:/";
 
+volatile uint64_t render_time = 0;
+volatile uint64_t screen_time = 0;
 volatile int runSound, playSound;
 struct xmp_frame_info fi;
 volatile uint32_t _PAUSE_FLAG;
 
-char *search_path[3] = {"romfs:/", "sdmc:/mod", "sdmc:/3ds/3ds-tuneplayer/mod"};
+char *search_path[] = {"romfs:/", "sdmc:/mod", "sdmc:/mods", "sdmc:/3ds/3ds-tuneplayer/mod"};
+
+void threadPlayStopHook(APT_HookType hook, void *param) {
+    switch (hook) {
+        case APTHOOK_ONSUSPEND:
+        case APTHOOK_ONSLEEP:
+            playSound = 0;
+            break;
+
+        case APTHOOK_ONRESTORE:
+        case APTHOOK_ONWAKEUP:
+            //Persist pause state
+            //playSound = 1;
+            break;
+
+        case APTHOOK_ONEXIT:
+            runSound = playSound = 0;
+            break;
+
+        default:
+            break;
+    }
+}
 
 void printhelp() {
     printf("GREETZ TO ALL TUNE MAKERS!\n");
@@ -34,6 +58,9 @@ void printhelp() {
     printf("Press UD with L pressed = change bottom screen info\n");
     printf("Start = Exit\n");
     printf("Select = Pause\n");
+    printf("\n");
+    printf("Thanks to all the people who helped me in different consoles\n");
+    //printf("");
     printf("\n3ds-tuneplayer made by Chromaryu\n");
     printf("using libxmp v%s\n", xmp_version);
 }
@@ -69,11 +96,13 @@ int main(int argc, char *argv[]) {
     uint32_t song_num = 0;
     int32_t main_prio;
     uint8_t info_flag = 0b00000000;
+    uint8_t subsong = 0;
     int model;
     Thread snd_thr = NULL;
     struct xmp_module_info mi;
     static int isFT = 0;
     LLNode *current_song = NULL;
+    aptHookCookie thr_playhook;
     bool isHelpprint = false;
     // cur_tick = svcGetSystemTick();
     gfxInitDefault();
@@ -82,6 +111,7 @@ int main(int argc, char *argv[]) {
     consoleSelect(&top);
 
     model = try_speedup();
+
     res = romfsInit();
     printf("romFSInit %08lx\n", res);
     if (R_FAILED(res)) {
@@ -96,8 +126,14 @@ int main(int argc, char *argv[]) {
         sendError("Failed to initalize NDSP... have you dumped your DSP rom?\n", 0xFFFF0001);
         goto exit;
     }
-    res = errfInit();
-    printf("errfInit: %08lx\n", res);
+    res = aptInit();
+    printf("aptInit %08lx\n", res);
+    if (R_FAILED(res)) {
+        printf("Error at aptInit()???? res %08lx\n", res);
+        sendError("Error at aptInit()!?!", 0xFFFF0003);
+        goto exit;
+    }
+    aptHook(&thr_playhook, threadPlayStopHook, NULL);
     // Forcing Errdisp
     //ERRF_ThrowResultWithMessage(0xd800456a, "FailTest!");
     //sendError("TestError.\n", 0xFFFFFFFF);
@@ -108,12 +144,17 @@ int main(int argc, char *argv[]) {
     song_num += searchsong(search_path[0], &ll);
     song_num += searchsong(search_path[1], &ll);
     song_num += searchsong(search_path[2], &ll);
+    song_num += searchsong(search_path[3], &ll);
+
+    printf("Songs: %d\n", song_num);
+    //_debug_pause();
     // TODO: do better job at this
     if (song_num == 0) {
         //printf("There's no song at any of folders I've searched!\n");
         sendError("There's no songs playable!\n", 0xC0000000);
         goto exit;
     }
+
     current_song = ll.front;
 
     hidScanInput();
@@ -131,9 +172,11 @@ int main(int argc, char *argv[]) {
     if (h & KEY_DUP) {
         _debug_pause();
     }
-
-    if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+    //loadSongMemory(current_song->track_path, current_song->directory);
+    //if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+    if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
         printf("Error on loadSong !!!?\n");
+
         goto exit;
     };
     clean_console(&top, &bot);
@@ -154,10 +197,11 @@ int main(int argc, char *argv[]) {
     int subscroll = 0;
     uint64_t timer_cnt = 0;
     // Main loop
+    uint64_t first = 0;
     while (aptMainLoop()) {
-        gspWaitForVBlank();
-        gfxSwapBuffers();
-
+        //gspWaitForVBlank();
+        //gfxSwapBuffers();
+        first = svcGetSystemTick();
         // Check loop cnt
         if (fi.loop_count > 0) {
             current_song = current_song->next;
@@ -170,7 +214,7 @@ int main(int argc, char *argv[]) {
             xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+            if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
                 printf("Error on loadSong !!!?\n");
                 sendError("Error on loadsong...?\n", 0xFFFF0003);
                 //ERRF_ThrowResultWithMessage();
@@ -178,11 +222,14 @@ int main(int argc, char *argv[]) {
             }
             //_debug_pause();
             clean_console(&top, &bot);
+            render_time = screen_time = 0;
+            first = svcGetSystemTick();
+
             scroll = 0;
             playSound = 1;
         }
 
-        show_generic_info(&fi, &mi, &top, &bot);
+        show_generic_info(&fi, &mi, &top, &bot, model);
         /// 000 shows default info.
         if (info_flag & 1) {
             show_instrument_info(&mi, &top, &bot, &scroll, subscroll);
@@ -193,7 +240,7 @@ int main(int argc, char *argv[]) {
             //Help.
             if (!isHelpprint) {
                 consoleSelect(&top);
-
+                printhelp();
                 isHelpprint = true;
             }
 
@@ -256,45 +303,84 @@ int main(int argc, char *argv[]) {
         }
 
         if (kDown & KEY_RIGHT) {
-            current_song = current_song->next;
-            if (current_song == NULL) current_song = ll.front;
-            playSound = 0;
-            while (!_PAUSE_FLAG) {
-                svcSleepThread(20000);
+            if (kHeld & KEY_R) {
+                // Does it even have a subsong to play?
+                if (mi.num_sequences >= 2) {
+                    if (!(mi.num_sequences < subsong + 1)) {
+                        playSound = 0;
+                        while (!_PAUSE_FLAG) {
+                            svcSleepThread(20000);
+                        }
+                        if (mi.num_sequences > subsong) subsong++;
+                        //xmp_stop_module(c);
+                        xmp_set_position(c, mi.seq_data[subsong].entry_point);
+                        playSound = 1;
+                    }
+                }
+            } else {
+                current_song = current_song->next;
+                if (current_song == NULL) current_song = ll.front;
+                playSound = 0;
+                while (!_PAUSE_FLAG) {
+                    svcSleepThread(20000);
+                }
+                xmp_stop_module(c);
+                clean_console(&top, &bot);
+                gotoxy(0, 0);
+                if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+                    printf("Error on loadSong !!!?\n");
+                    goto exit;
+                };
+                //_debug_pause();
+                clean_console(&top, &bot);
+                render_time = screen_time = 0;
+                first = svcGetSystemTick();
+                scroll = 0;
+                subsong = 0;
+                playSound = 1;
             }
-            xmp_stop_module(c);
-            clean_console(&top, &bot);
-            gotoxy(0, 0);
-            if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
-                printf("Error on loadSong !!!?\n");
-                goto exit;
-            };
-            //_debug_pause();
-            clean_console(&top, &bot);
-            scroll = 0;
-            playSound = 1;
         }
 
         if (kDown & KEY_LEFT) {
-            current_song = current_song->prev;
-            if (current_song == NULL) current_song = ll.back;
-            playSound = 0;
-            while (!_PAUSE_FLAG) {
-                svcSleepThread(20000);
+            if (kHeld & KEY_R) {
+                // Does it even have a subsong to play?
+                if (mi.num_sequences >= 2) {
+                    if (subsong != 0) {
+                        playSound = 0;
+                        while (!_PAUSE_FLAG) {
+                            svcSleepThread(20000);
+                        }
+                        //xmp_stop_module(c);
+                        if (subsong > 0) subsong--;
+                        xmp_set_position(c, mi.seq_data[subsong].entry_point);
+                        playSound = 1;
+                        //subsong++;
+                    }
+                }
+            } else {
+                current_song = current_song->prev;
+                if (current_song == NULL) current_song = ll.back;
+                playSound = 0;
+                while (!_PAUSE_FLAG) {
+                    svcSleepThread(20000);
+                }
+                xmp_stop_module(c);
+                clean_console(&top, &bot);
+                gotoxy(0, 0);
+                if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+                    printf("Error on loadSong !!!?\n");
+                    goto exit;
+                };
+                clean_console(&top, &bot);
+                render_time = screen_time = 0;
+                first = svcGetSystemTick();
+                scroll = 0;
+                subsong = 0;
+                playSound = 1;
             }
-            xmp_stop_module(c);
-            clean_console(&top, &bot);
-            gotoxy(0, 0);
-            if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
-                printf("Error on loadSong !!!?\n");
-                goto exit;
-            };
-            clean_console(&top, &bot);
-            scroll = 0;
-            playSound = 1;
         }
-
         if (kDown & KEY_START) break;  // break in order to return to hbmenu
+        screen_time = svcGetSystemTick() - first;
     }
 exit:
     playSound = 0;
@@ -303,12 +389,14 @@ exit:
     }  // Sync
     xmp_stop_module(c);
     _debug_pause();
+    aptUnhook(&thr_playhook);
     runSound = 0;
     threadJoin(snd_thr, U64_MAX);
     xmp_end_player(c);
     xmp_release_module(c);
     xmp_free_context(c);
     free_list(&ll);
+    aptExit();
     ndspExit();
     romfsExit();
     gfxExit();

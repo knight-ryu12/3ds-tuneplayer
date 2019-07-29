@@ -9,6 +9,7 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
     uint8_t h, l;
     switch (fxt) {
         case 0:
+        case 0xb4:
             if (!fxp) {  // need to be real, not fake one
                 break;
             }

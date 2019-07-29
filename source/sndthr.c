@@ -4,13 +4,13 @@
 #include <string.h>
 #include <xmp.h>
 
-#define N3DS_BLOCK 4096
+#define N3DS_BLOCK 3072
 #define O3DS_BLOCK 6144
 // can someone find sweet spot?
 
 extern int runSound, playSound;
 extern struct xmp_frame_info fi;
-extern uint64_t d_t;
+extern uint64_t render_time;
 
 extern volatile uint32_t _PAUSE_FLAG;
 
@@ -24,14 +24,6 @@ Result setup_ndsp() {
     ndspChnSetFormat(CHANNEL, NDSP_FORMAT_STEREO_PCM16);
     ndspSetOutputMode(NDSP_OUTPUT_STEREO);
     ndspChnSetRate(CHANNEL, SAMPLE_RATE);
-    return 0;
-}
-
-int initXMP(char *path, xmp_context c, struct xmp_module_info *mi) {
-    if (xmp_load_module(c, path) != 0) return 1;
-    xmp_get_module_info(c, mi);
-    xmp_set_player(c, XMP_PLAYER_INTERP, XMP_INTERP_SPLINE);
-    //xmp_set_player(c, XMP_PLAYER_VOICES, 256);
     return 0;
 }
 
@@ -56,10 +48,13 @@ void soundThread(void *arg) {
     }
 
     _PAUSE_FLAG = 0;
-
+    uint64_t first = 0;
+    //uint64_t second = 0;
     while (runSound) {
+        first = svcGetSystemTick();
         if (!playSound) {
             _PAUSE_FLAG = 1;
+            render_time = 0;
             while (runSound && !playSound) {
                 svcSleepThread(20000);
             };
@@ -77,8 +72,10 @@ void soundThread(void *arg) {
         DSP_FlushDataCache(sbuf, BLOCK);
         ndspChnWaveBufAdd(CHANNEL, &waveBuf[cur_wvbuf]);
         cur_wvbuf ^= 1;
+        render_time = svcGetSystemTick() - first;
         while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && runSound)
-            svcSleepThread(10e9 / (BLOCK / 2));
+            //svcSleepThread(10e9 / (BLOCK / 2));
+            svcSleepThread(20000);
     }
 exit:
     ndspChnWaveBufClear(CHANNEL);
