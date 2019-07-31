@@ -23,12 +23,19 @@ int initXMP(char *path, xmp_context c, struct xmp_module_info *mi) {
 int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT) {
     FILE *fp = NULL;
     struct xmp_test_info ti;
+    int32_t res;
     printf("Loading...\n");
-    free(buffer_ptr);
-    buffer_ptr = NULL;
+    //free(buffer_ptr);
+    //buffer_ptr = NULL;
     chdir(dir);
+    //xmp_stop_module(c);
     xmp_end_player(c);
-    //xmp_release_module(c);
+    xmp_release_module(c);
+    // Then
+    free(buffer_ptr);
+    //buffer_ptr = NULL;
+    // This'll release ptr memory from memory
+
     if (xmp_test_module(path, &ti) != 0) {
         printf("Illegal module detected.\n");
         return 2;
@@ -41,17 +48,30 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     printf("Filesize %ld\n", buffer_sz);
     fseek(fp, 0, SEEK_SET);
     buffer_ptr = malloc(buffer_sz + 1);
+    if (buffer_ptr == NULL) {
+        //???????
+        printf("Memory Allocation Error!\n");
+        return 1;
+    }
     printf("malloced at %8p\n", buffer_ptr);
     // Fancy loading?
-    for (uint32_t i = 0; i < buffer_sz; i += MEMBLOCK_SIZE) {
-        //COOL LOADING
-        int32_t res = fread(buffer_ptr + i, 1, MEMBLOCK_SIZE, fp);
-        if (res < 1) break;
-        printf("Load %8p rem %08lx read%ld\r", buffer_ptr + i, buffer_sz - i, res);
-    }
-    // Try testing first
+    uint32_t blocks = MEMBLOCK_SIZE;
+    if (buffer_sz <= 0x100000) blocks = MEMBLOCK_SIZE / 2;
 
-    xmp_load_module_from_memory(c, buffer_ptr, buffer_sz);
+    for (uint32_t i = 0; i < buffer_sz; i += blocks) {
+        //COOL LOADING
+        res = fread(buffer_ptr + i, 1, blocks, fp);
+        if (res <= 0) {
+            printf("error on reading\n");
+            break;
+        }
+        printf("Load%8p rem %08lx read%4ld\r", buffer_ptr + i, buffer_sz - i, res);
+    }
+    printf("\n");
+    // Try testing first
+    // this is what initXMP do
+    res = xmp_load_module_from_memory(c, buffer_ptr, buffer_sz);
+    printf("xmp loadstate %ld\n", res);
     xmp_get_module_info(c, mi);
     if (strstr(mi->mod->type, "XM") != NULL) {
         printf("XM Mode\n");
@@ -59,8 +79,11 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     } else
         *isFT = 0;
 
-    xmp_start_player(c, SAMPLE_RATE, 0);
+    res = xmp_start_player(c, SAMPLE_RATE, 0);
+    printf("xmp state %ld\n", res);
     //xmp_set_player(c, XMP_PLAYER_INTERP, XMP_INTERP_SPLINE);
+    _debug_pause();
+    fclose(fp);
 
     return 0;
 }

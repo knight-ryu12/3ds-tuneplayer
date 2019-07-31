@@ -14,13 +14,18 @@
 
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
+#define DISABLE_LOOPCHK
+
 //char *romfs_path = "romfs:/";
 
 volatile uint64_t render_time = 0;
 volatile uint64_t screen_time = 0;
 volatile int runSound, playSound;
+volatile int runMain;
 struct xmp_frame_info fi;
 volatile uint32_t _PAUSE_FLAG;
+
+int player_config = 0;
 
 char *search_path[] = {"romfs:/", "sdmc:/mod", "sdmc:/mods", "sdmc:/3ds/3ds-tuneplayer/mod"};
 
@@ -39,6 +44,7 @@ void threadPlayStopHook(APT_HookType hook, void *param) {
 
         case APTHOOK_ONEXIT:
             runSound = playSound = 0;
+            runMain = 0;
             break;
 
         default:
@@ -74,15 +80,6 @@ void sendError(char *error, int code) {
     errorDisp(&err);
 }
 
-void _debug_pause() {
-    printf("Press start.\n");
-    while (1) {
-        hidScanInput();
-        u32 kDown = hidKeysDown();
-        if (kDown & KEY_START) break;
-    }
-}
-
 void clean_console(PrintConsole *top, PrintConsole *bot) {
     consoleSelect(top);
     consoleClear();
@@ -104,6 +101,8 @@ int main(int argc, char *argv[]) {
     LLNode *current_song = NULL;
     aptHookCookie thr_playhook;
     bool isHelpprint = false;
+    //char status_msg[32];
+    //snprintf(&status_msg, 31, "");
     // cur_tick = svcGetSystemTick();
     gfxInitDefault();
     consoleInit(GFX_TOP, &top);
@@ -172,7 +171,6 @@ int main(int argc, char *argv[]) {
     if (h & KEY_DUP) {
         _debug_pause();
     }
-    //loadSongMemory(current_song->track_path, current_song->directory);
     //if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
     if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
         printf("Error on loadSong !!!?\n");
@@ -198,11 +196,16 @@ int main(int argc, char *argv[]) {
     uint64_t timer_cnt = 0;
     // Main loop
     uint64_t first = 0;
+    runMain = 1;
     while (aptMainLoop()) {
+        if (!runMain) {
+            break;
+        }  // Break to exit.
         //gspWaitForVBlank();
         //gfxSwapBuffers();
         first = svcGetSystemTick();
         // Check loop cnt
+#ifndef DISABLE_LOOPCHK
         if (fi.loop_count > 0) {
             current_song = current_song->next;
             if (current_song == NULL)
@@ -228,6 +231,7 @@ int main(int argc, char *argv[]) {
             scroll = 0;
             playSound = 1;
         }
+#endif
 
         show_generic_info(&fi, &mi, &top, &bot, model);
         /// 000 shows default info.
@@ -248,6 +252,7 @@ int main(int argc, char *argv[]) {
             show_channel_info(&fi, &mi, &top, &bot, &scroll, isFT, subscroll);  // Fall back
             show_channel_info_btm(&fi, &mi, &top, &bot, &subscroll, isFT);
         }
+
         hidScanInput();
 
         // Your code goes here
@@ -381,6 +386,7 @@ int main(int argc, char *argv[]) {
         }
         if (kDown & KEY_START) break;  // break in order to return to hbmenu
         screen_time = svcGetSystemTick() - first;
+        gspWaitForVBlank();
     }
 exit:
     playSound = 0;
