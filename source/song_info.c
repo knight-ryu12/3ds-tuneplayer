@@ -103,27 +103,27 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         if (i == toscroll && isuind) ind = '^';  // There is a lot more to write
         if (i == chmax - 1 && isdind) ind = 'v';
         // Parse note
-        struct xmp_channel_info ci = fi->channel_info[i];
-        struct xmp_event ev = ci.event;
-        if (ev.note > 0x80)
+        struct xmp_channel_info *ci = &fi->channel_info[i];
+        struct xmp_event *ev = &ci->event;
+        if (ev->note > 0x80)
             snprintf(buf, 15, "===");
-        else if (ev.note > 0) {
-            snprintf(buf, 15, "\e[34;1m%s%d\e[0m", note_name[ev.note % 12],
-                     ev.note / 12);
-            old_note[i] = ev.note;
-        } else if (ev.note == 0 && ci.volume != 0) {
+        else if (ev->note > 0) {
+            snprintf(buf, 15, "\e[34;1m%s%d\e[0m", note_name[ev->note % 12],
+                     ev->note / 12);
+            old_note[i] = ev->note;
+        } else if (ev->note == 0 && ci->volume != 0) {
             snprintf(buf, 15, "\e[36;1m%s%d\e[0m", note_name[old_note[i] % 12],
                      old_note[i] / 12);
         } else {
             snprintf(buf, 15, "---");
             old_note[i] = 0;
         }
-        parse_fx(i, fx_buf, old_fxt, old_fxp, ev.fxt, ev.fxp, isFT, false);
-        parse_fx(i, fx2_buf, old_f2t, old_f2p, ev.f2t, ev.f2p, isFT, true);
+        parse_fx(i, fx_buf, old_fxt, old_fxp, ev->fxt, ev->fxp, isFT, false);
+        parse_fx(i, fx2_buf, old_f2t, old_f2p, ev->f2t, ev->f2p, isFT, true);
         printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02d%02d %5x %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
-               ev.note != 0 ? '!' : ci.volume == 0 ? ' ' : 'G', ci.instrument, buf,
-               ci.pitchbend < 0 ? "-" : "+", ci.pitchbend < 0 ? -(unsigned)ci.pitchbend : ci.pitchbend,
-               ci.pan, ci.volume, ev.vol, ci.position, fx_buf, fx2_buf, ind);
+               ev->note != 0 ? '!' : ci->volume == 0 ? ' ' : 'G', ci->instrument, buf,
+               ci->pitchbend < 0 ? "-" : "+", ci->pitchbend < 0 ? -(unsigned)ci->pitchbend : ci->pitchbend,
+               ci->pan, ci->volume, ev->vol, ci->position, fx_buf, fx2_buf, ind);
     }
 }
 

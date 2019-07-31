@@ -240,10 +240,16 @@ int main(int argc, char *argv[]) {
         show_generic_info(&fi, &mi, &top, &bot, model, subsong);
         /// 000 shows default info.
         if (info_flag & 1) {
-            show_instrument_info(&mi, &top, &bot, &scroll, subscroll);
+            if (!isPrint) {
+                show_instrument_info(&mi, &top, &bot, &scroll, subscroll);
+                isPrint = true;
+            }
             show_channel_intrument_info(&fi, &mi, &top, &bot, &subscroll);
         } else if (info_flag & 2) {
-            show_sample_info(&mi, &top, &bot, &scroll);
+            if (!isPrint) {
+                show_sample_info(&mi, &top, &bot, &scroll);
+                isPrint = true;
+            }
         } else if (info_flag & 4) {
             //Help.
             if (!isPrint) {
@@ -282,6 +288,7 @@ int main(int argc, char *argv[]) {
 
         if (kDown & KEY_A) {
             clean_console(&top, &bot);
+            isPrint = false;
             info_flag = 0b000;
         }
         if (kDown & KEY_B) {
@@ -291,16 +298,19 @@ int main(int argc, char *argv[]) {
         }
         if (kDown & KEY_X) {
             clean_console(&top, &bot);
+            isPrint = false;
             info_flag = 0b001;
         }
         if (kDown & KEY_Y) {
             clean_console(&top, &bot);
+            isPrint = false;
             info_flag = 0b010;
         }
 
         if (kDown & KEY_SELECT) playSound ^= 1;
 
         if (kDown & KEY_DOWN) {  //|| (kHeld & KEY_DOWN && timer_cnt >= 50)) {
+            isPrint = false;
             if (kHeld & KEY_L) {
                 subscroll++;
             } else {
@@ -317,6 +327,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (kDown & KEY_UP) {  //|| (kHeld & KEY_UP && timer_cnt >= 50)) {
+            isPrint = false;
             if (kHeld & KEY_L)
                 if (subscroll != 0 && subscroll >= 0) subscroll--;
             if (scroll != 0 && scroll >= 0) scroll--;

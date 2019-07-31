@@ -5,7 +5,7 @@
 #include <xmp.h>
 
 #define N3DS_BLOCK 3072
-#define O3DS_BLOCK 6144
+#define O3DS_BLOCK 4096
 // can someone find sweet spot?
 
 extern int runSound, playSound;
@@ -76,7 +76,7 @@ void soundThread(void *arg) {
         render_time = svcGetSystemTick() - first;
         while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && runSound)
             //svcSleepThread(10e9 / (BLOCK / 2));
-            svcSleepThread(1000000000 / (BLOCK / 2));
+            svcSleepThread(100000000 / (BLOCK / 2));
     }
 exit:
     ndspChnWaveBufClear(CHANNEL);
