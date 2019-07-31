@@ -116,7 +116,7 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
             snprintf(_arg1, 6, "SURrD");
             break;
         case 0x87:
-            snpintf(_arg1, 6, "SETtP");
+            snprintf(_arg1, 6, "SETtP");
             break;
             // Btw; Txx effect is kinda special
 

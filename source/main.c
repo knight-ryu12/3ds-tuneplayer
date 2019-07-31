@@ -16,6 +16,9 @@
 
 #define DISABLE_LOOPCHK
 
+// 3ds-tuneplayer backed by libxmp (CMatsuoka, thx), by Chromaryu
+// "80's praise on 2012 hardware" - Chromaryu
+
 //char *romfs_path = "romfs:/";
 
 volatile uint64_t render_time = 0;
