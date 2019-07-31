@@ -21,17 +21,17 @@ extern uint64_t render_time;
 extern uint64_t screen_time;
 extern volatile uint32_t _PAUSE_FLAG;
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
-                       PrintConsole *top, PrintConsole *bot, int isN3DS) {
+                       PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
     uint32_t SYS_TICK = isN3DS ? SYSCLOCK_ARM11_NEW : SYSCLOCK_ARM11;
     char secondbuf[32];
     snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
-    printf("P%02x p%02x R%02x S%1x B%3d %1d %s\n", fi->pos, fi->pattern, fi->row,
-           fi->speed, fi->bpm, fi->loop_count, secondbuf);
+    printf("P%02x p%02x R%02x S%1x B%3d %1d %s Ss%1d/%1d\n", fi->pos, fi->pattern, fi->row,
+           fi->speed, fi->bpm, fi->loop_count, secondbuf, cur_subsong + 1, mi->num_sequences);
     printf("%s\n%s\n", mi->mod->name, mi->mod->type);
     printf("RT %02.3lfms ST %02.3lfms\n", render_time / (SYS_TICK / 1000.0), screen_time / (SYS_TICK / 1000.0));
-    printf("Status: %s\n", _PAUSE_FLAG ? "Paused" : "Playing");
+    printf("Status: %8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
 }
 
 void set_effect_memory(int ch, uint8_t fxp, uint8_t fxt, uint8_t *ofxt,
@@ -256,13 +256,13 @@ void show_channel_info_btm(struct xmp_frame_info *fi, struct xmp_module_info *mi
         else
             loopflg = "Forw";
     } else
-        loopflg = "";
+        loopflg = "----";
 
     printf("\n=Info=\n");
     printf("Channel %2d: smp/ins%02d:%02d\n", *s, cur_smp_n, cur_ins_n);
     printf("%-5x %-5x ls%-5x le%-5x\n", cur_smp->len, fi->channel_info[*s].position, cur_smp->lps, cur_smp->lpe);
     printf("n:%-32.32s\n", cur_smp->name);
-    printf("m> %s\n%s\n", cur_smp->flg & XMP_SAMPLE_16BIT ? "16b" : "", loopflg);
+    printf("m> %s,%s\n", cur_smp->flg & XMP_SAMPLE_16BIT ? "16b" : "---", loopflg);
     printf("i:\"%-32.32s\"", xi->name);
     printf("%d\n", xi->vol);
 }

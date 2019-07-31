@@ -59,7 +59,7 @@ LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 LIBS	:= -lxmp -lctru -lm
 
-APP_TITLE := $(TARGET)
+APP_TITLE := 3ds-tuneplayer
 APP_DESCRIPTION := mmh... libxmp...
 APP_AUTHOR := Chromaryu
 #---------------------------------------------------------------------------------

@@ -11,7 +11,7 @@
 #include "sndthr.h"
 #include "song_info.h"
 #include "songhandler.h"
-
+#include "songview.h"
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
 #define DISABLE_LOOPCHK
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     static int isFT = 0;
     LLNode *current_song = NULL;
     aptHookCookie thr_playhook;
-    bool isHelpprint = false;
+
     //char status_msg[32];
     //snprintf(&status_msg, 31, "");
     // cur_tick = svcGetSystemTick();
@@ -197,6 +197,7 @@ int main(int argc, char *argv[]) {
     // Main loop
     uint64_t first = 0;
     runMain = 1;
+    bool isPrint = false;
     while (aptMainLoop()) {
         if (!runMain) {
             break;
@@ -233,7 +234,7 @@ int main(int argc, char *argv[]) {
         }
 #endif
 
-        show_generic_info(&fi, &mi, &top, &bot, model);
+        show_generic_info(&fi, &mi, &top, &bot, model, subsong);
         /// 000 shows default info.
         if (info_flag & 1) {
             show_instrument_info(&mi, &top, &bot, &scroll, subscroll);
@@ -242,12 +243,17 @@ int main(int argc, char *argv[]) {
             show_sample_info(&mi, &top, &bot, &scroll);
         } else if (info_flag & 4) {
             //Help.
-            if (!isHelpprint) {
+            if (!isPrint) {
                 consoleSelect(&top);
                 printhelp();
-                isHelpprint = true;
+                isPrint = true;
             }
-
+        } else if (info_flag & 8) {
+            if (!isPrint) {
+                consoleSelect(&top);
+                show_playlist(ll, current_song, &top, &bot, 0);
+                isPrint = true;
+            }
         } else {
             show_channel_info(&fi, &mi, &top, &bot, &scroll, isFT, subscroll);  // Fall back
             show_channel_info_btm(&fi, &mi, &top, &bot, &subscroll, isFT);
@@ -265,13 +271,19 @@ int main(int argc, char *argv[]) {
         } else
             timer_cnt = 0;
 
+        if (kDown & KEY_R) {
+            clean_console(&top, &bot);
+            isPrint = false;
+            info_flag = 0b1000;
+        }
+
         if (kDown & KEY_A) {
             clean_console(&top, &bot);
             info_flag = 0b000;
         }
         if (kDown & KEY_B) {
             clean_console(&top, &bot);
-            isHelpprint = false;
+            isPrint = false;
             info_flag = 0b100;
         }
         if (kDown & KEY_X) {
@@ -308,10 +320,10 @@ int main(int argc, char *argv[]) {
         }
 
         if (kDown & KEY_RIGHT) {
-            if (kHeld & KEY_R) {
+            if (kHeld & KEY_L) {
                 // Does it even have a subsong to play?
                 if (mi.num_sequences >= 2) {
-                    if (!(mi.num_sequences < subsong + 1)) {
+                    if (mi.num_sequences >= subsong + 1) {
                         playSound = 0;
                         while (!_PAUSE_FLAG) {
                             svcSleepThread(20000);
@@ -342,12 +354,13 @@ int main(int argc, char *argv[]) {
                 first = svcGetSystemTick();
                 scroll = 0;
                 subsong = 0;
+                isPrint = false;
                 playSound = 1;
             }
         }
 
         if (kDown & KEY_LEFT) {
-            if (kHeld & KEY_R) {
+            if (kHeld & KEY_L) {
                 // Does it even have a subsong to play?
                 if (mi.num_sequences >= 2) {
                     if (subsong != 0) {
@@ -381,6 +394,7 @@ int main(int argc, char *argv[]) {
                 first = svcGetSystemTick();
                 scroll = 0;
                 subsong = 0;
+                isPrint = false;
                 playSound = 1;
             }
         }
@@ -394,7 +408,7 @@ exit:
         svcSleepThread(20000);
     }  // Sync
     xmp_stop_module(c);
-    _debug_pause();
+    //_debug_pause();
     aptUnhook(&thr_playhook);
     runSound = 0;
     threadJoin(snd_thr, U64_MAX);

@@ -72,11 +72,11 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
             switch (h) {
                 default:
                     break;
-                case 0x2:
-                    snprintf(_arg1, 6, "EPRtD");
-                    break;
                 case 0x1:
                     snprintf(_arg1, 6, "EPRtU");
+                    break;
+                case 0x2:
+                    snprintf(_arg1, 6, "EPRtD");
                     break;
                 case 0xa:
                     snprintf(_arg1, 6, "EFVsU");
@@ -96,6 +96,9 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
             snprintf(_arg1, 6, "BREaK");
             break;
 
+        case 0x10:
+            snprintf(_arg1, 6, "GVOlS");
+            break;
         case 0x11:
             snprintf(_arg1, 6, "GVOlS");
             break;
@@ -111,6 +114,11 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
         // S3M/IT
         case 0x8d:
             snprintf(_arg1, 6, "SURrD");
+            break;
+        case 0x87:
+            snpintf(_arg1, 6, "SETtP");
+            break;
+            // Btw; Txx effect is kinda special
 
         default:
             snprintf(_arg1, 6, "???%02X", fxt);
