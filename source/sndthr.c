@@ -20,7 +20,7 @@ Result setup_ndsp() {
     if (R_FAILED(res)) return res;
 
     ndspChnReset(CHANNEL);
-    ndspChnSetInterp(CHANNEL, NDSP_INTERP_NONE);
+    ndspChnSetInterp(CHANNEL, NDSP_INTERP_POLYPHASE);
     ndspChnSetFormat(CHANNEL, NDSP_FORMAT_STEREO_PCM16);
     ndspSetOutputMode(NDSP_OUTPUT_STEREO);
     ndspChnSetRate(CHANNEL, SAMPLE_RATE);
@@ -76,7 +76,7 @@ void soundThread(void *arg) {
         render_time = svcGetSystemTick() - first;
         while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && runSound)
             //svcSleepThread(10e9 / (BLOCK / 2));
-            svcSleepThread(100000000 / (BLOCK / 2));
+            svcSleepThread(10000000 / (BLOCK / 2));
     }
 exit:
     ndspChnWaveBufClear(CHANNEL);

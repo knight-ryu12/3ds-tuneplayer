@@ -22,15 +22,16 @@ extern uint64_t screen_time;
 extern volatile uint32_t _PAUSE_FLAG;
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
-    uint32_t SYS_TICK = isN3DS ? SYSCLOCK_ARM11_NEW : SYSCLOCK_ARM11;
+    uint32_t SYS_TICK = isN3DS ? SYSCLOCK_ARM11_NEW : SYSCLOCK_ARM11;  // how fast is 3ds cpu is
+
     char secondbuf[32];
     snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
-    printf("P%02x p%02x R%02x S%1x B%3d %1d %s Ss%1d/%1d\n", fi->pos, fi->pattern, fi->row,
-           fi->speed, fi->bpm, fi->loop_count, secondbuf, cur_subsong + 1, mi->num_sequences);
+    printf("P%02x p%02x R%02x S%1x B%3d %1d Ss%1d/%1d\n%s\n", fi->pos, fi->pattern, fi->row,
+           fi->speed, fi->bpm, fi->loop_count, cur_subsong + 1, mi->num_sequences, secondbuf);
     printf("%s\n%s\n", mi->mod->name, mi->mod->type);
-    printf("RT %02.3lfms ST %02.3lfms\n", render_time / (SYS_TICK / 1000.0), screen_time / (SYS_TICK / 1000.0));
+    printf("RT %2.3fms ST%2.3fms MT %2.3fms\n", render_time / (SYS_TICK / 1000.0), screen_time / (SYS_TICK / 1000.0), (render_time + screen_time) / (SYS_TICK / 1000.0));
     printf("Status: %8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
 }
 
@@ -48,11 +49,12 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
               uint8_t fxp, bool isFT, bool isf2) {
     static char _arg1[8];
     bool isEFFM = false;
-    bool isNNA = false;
+    //bool isNNA = false;
     uint8_t _fxp = fxp;
     // ofxt[ch] = fxt;
 
     if ((fxt == 1 || fxt == 2 || fxt == 3 || fxt == 4 || fxt == 6 || fxt == 7 ||
+         fxt == 9 ||
          fxt == 0xa || fxt == 0x11 || fxt == 0xb4)) {
         if (fxp == 0) {
             _fxp = get_effect_memory(ch, ofxt, ofxp);
@@ -120,10 +122,10 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         }
         parse_fx(i, fx_buf, old_fxt, old_fxp, ev->fxt, ev->fxp, isFT, false);
         parse_fx(i, fx2_buf, old_f2t, old_f2p, ev->f2t, ev->f2p, isFT, true);
-        printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02d%02d %5x %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
+        printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02d%02d %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
                ev->note != 0 ? '!' : ci->volume == 0 ? ' ' : 'G', ci->instrument, buf,
                ci->pitchbend < 0 ? "-" : "+", ci->pitchbend < 0 ? -(unsigned)ci->pitchbend : ci->pitchbend,
-               ci->pan, ci->volume, ev->vol, ci->position, fx_buf, fx2_buf, ind);
+               ci->pan, ci->volume, ev->vol, fx_buf, fx2_buf, ind);
     }
 }
 
@@ -215,17 +217,18 @@ void show_channel_intrument_info(struct xmp_frame_info *fi,
                                  struct xmp_module_info *mi, PrintConsole *top,
                                  PrintConsole *bot, int *s) {
     consoleSelect(bot);
-    struct xmp_instrument xi;
+    struct xmp_instrument *xi;
     // How many inst do I have
     if (mi->mod->ins - 1 < *s) {
         *s = mi->mod->ins - 1;
         return;
     }
-    xi = mi->mod->xxi[*s];
+    xi = &mi->mod->xxi[*s];
 
     //if (xi == NULL) return;
-    printf("RLS %02x\n", xi.rls);
-    printf("NSM %02x\n", xi.nsm);
+    printf("n:%-32.32s\n", xi->name);
+    printf("RLS %02x\n", xi->rls);
+    printf("NSM %02x\n", xi->nsm);
 }
 
 void show_channel_info_btm(struct xmp_frame_info *fi, struct xmp_module_info *mi,
@@ -262,7 +265,7 @@ void show_channel_info_btm(struct xmp_frame_info *fi, struct xmp_module_info *mi
     printf("Channel %2d: smp/ins%02d:%02d\n", *s, cur_smp_n, cur_ins_n);
     printf("%-5x %-5x ls%-5x le%-5x\n", cur_smp->len, fi->channel_info[*s].position, cur_smp->lps, cur_smp->lpe);
     printf("n:%-32.32s\n", cur_smp->name);
-    printf("m> %s,%s\n", cur_smp->flg & XMP_SAMPLE_16BIT ? "16b" : "---", loopflg);
+    printf("m> %s,%s\n", cur_smp->flg & XMP_SAMPLE_16BIT ? "16b" : " 8b", loopflg);
     printf("i:\"%-32.32s\"", xi->name);
     printf("%d\n", xi->vol);
 }

@@ -415,6 +415,7 @@ int main(int argc, char *argv[]) {
         if (kDown & KEY_START) break;  // break in order to return to hbmenu
         screen_time = svcGetSystemTick() - first;
         gspWaitForVBlank();
+        gfxSwapBuffers();
     }
 exit:
     playSound = 0;
@@ -433,6 +434,5 @@ exit:
     aptExit();
     ndspExit();
     romfsExit();
-    gfxExit();
     return 0;
 }

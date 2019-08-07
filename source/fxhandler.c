@@ -53,7 +53,8 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
             else if (h == 0xf && l != 0)
                 snprintf(_arg1, 6, "VOLsD");
             else if (h == 0xf || l == 0xf)  // ???
-                snprintf(_arg1, 6, "VOLfS");
+                snprintf(_arg1, 6, "VOLsS");
+            break;
         ft2:
             if ((fxp & 0x0F) == 0 && (fxp >> 4 & 0xF) > 0)  // Up
                 snprintf(_arg1, 6, "VOLsU");
