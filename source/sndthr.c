@@ -20,7 +20,8 @@ Result setup_ndsp() {
     if (R_FAILED(res)) return res;
 
     ndspChnReset(CHANNEL);
-    ndspChnSetInterp(CHANNEL, NDSP_INTERP_POLYPHASE);
+    ndspChnSetInterp(CHANNEL, NDSP_INTERP_NONE);
+    ndspSetClippingMode(NDSP_CLIP_NORMAL);  //???
     ndspChnSetFormat(CHANNEL, NDSP_FORMAT_STEREO_PCM16);
     ndspSetOutputMode(NDSP_OUTPUT_STEREO);
     ndspChnSetRate(CHANNEL, SAMPLE_RATE);
