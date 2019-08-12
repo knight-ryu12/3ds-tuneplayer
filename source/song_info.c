@@ -22,8 +22,7 @@ extern uint64_t screen_time;
 extern volatile uint32_t _PAUSE_FLAG;
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
-    uint32_t SYS_TICK = isN3DS ? SYSCLOCK_ARM11_NEW : SYSCLOCK_ARM11;  // how fast is 3ds cpu is
-
+    uint32_t SYS_TICK = isN3DS ? SYSCLOCK_ARM11_NEW : SYSCLOCK_ARM11;  // how fast 3ds cpu is
     char secondbuf[32];
     snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);

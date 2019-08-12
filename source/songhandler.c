@@ -83,6 +83,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     res = xmp_start_player(c, SAMPLE_RATE, 0);
     printf("xmp state %ld\n", res);
     xmp_set_player(c, XMP_PLAYER_INTERP, XMP_INTERP_LINEAR);
+    xmp_set_player(c, XMP_PLAYER_VOICES, 256);
     //_debug_pause();
     fclose(fp);
 

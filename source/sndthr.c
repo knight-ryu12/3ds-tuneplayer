@@ -57,7 +57,7 @@ void soundThread(void *arg) {
             _PAUSE_FLAG = 1;
             render_time = 0;
             while (runSound && !playSound) {
-                svcSleepThread(20000);
+                svcSleepThread(1000000);
             };
             // is sleep quit by runSound being off?
             if (!runSound) break;
@@ -77,7 +77,7 @@ void soundThread(void *arg) {
         render_time = svcGetSystemTick() - first;
         while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && runSound)
             //svcSleepThread(10e9 / (BLOCK / 2));
-            svcSleepThread(10000000 / (BLOCK / 2));
+            svcSleepThread(100000000 / (BLOCK / 2));
     }
 exit:
     ndspChnWaveBufClear(CHANNEL);

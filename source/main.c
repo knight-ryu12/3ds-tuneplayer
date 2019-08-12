@@ -434,5 +434,6 @@ exit:
     aptExit();
     ndspExit();
     romfsExit();
+    gfxExit();
     return 0;
 }
