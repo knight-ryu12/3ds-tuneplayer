@@ -61,10 +61,16 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
             else if (((fxp >> 4) & 0xF) == 0 && (fxp & 0x0F) > 0)  // Down
                 snprintf(_arg1, 6, "VOLsD");
             break;
+
+        case 0xb:
+            snprintf(_arg1, 6, "POSjP");
+            break;
         case 0xc:
             snprintf(_arg1, 6, "VOLsT");
             break;
-
+        case 0xd:
+            snprintf(_arg1, 6, "PTBrK");
+            break;
         case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
                     // it down
             h = (fxp >> 4) & 0xF;
@@ -78,6 +84,21 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
                     break;
                 case 0x2:
                     snprintf(_arg1, 6, "EPRtD");
+                    break;
+                case 0x3:
+                    // Not supported widely...?
+                    break;
+                case 0x4:
+                    snprintf(_arg1, 6, "STVwF");
+                    break;
+                case 0x5:
+                    snprintf(_arg1, 6, "STFtV");
+                    break;
+                case 0x6:  //Pattern loop is the special thing...
+                    if (l == 0)
+                        snprintf(_arg1, 6, "PTLpS");
+                    else
+                        snprintf(_arg1, 6, "PTLpG");
                     break;
                 case 0xa:
                     snprintf(_arg1, 6, "EFVsU");
@@ -93,8 +114,10 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
                     break;
             }
             break;
-        case 0xd:
-            snprintf(_arg1, 6, "BREaK");
+
+        case 0xa3:
+        case 0xf:
+            snprintf(_arg1, 6, "SPDsT");
             break;
 
         case 0x10:
@@ -102,10 +125,6 @@ void handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
             break;
         case 0x11:
             snprintf(_arg1, 6, "GVOlS");
-            break;
-        case 0xa3:
-        case 0xf:
-            snprintf(_arg1, 6, "SPDsT");
             break;
 
         case 0x1b:
