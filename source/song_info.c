@@ -22,15 +22,15 @@ extern uint64_t screen_time;
 extern volatile uint32_t _PAUSE_FLAG;
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
-    uint32_t SYS_TICK = isN3DS ? SYSCLOCK_ARM11_NEW : SYSCLOCK_ARM11;  // how fast 3ds cpu is
+    uint32_t SYS_TICK = SYSCLOCK_ARM11;  // seems like 3ds uses this clock no matter what
     char secondbuf[32];
     snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
-    printf("P%02x p%02x R%02x S%1x B%3d %1d Ss%1d/%1d\n%s\n", fi->pos, fi->pattern, fi->row,
-           fi->speed, fi->bpm, fi->loop_count, cur_subsong + 1, mi->num_sequences, secondbuf);
+    printf("P%02x p%02x R%02x/%02x\nS%1x B%3d %1d Ss%1d(%1d)/%1d\n%s\n", fi->pos, fi->pattern, fi->row,
+           fi->num_rows, fi->speed, fi->bpm, fi->loop_count, cur_subsong, fi->sequence, mi->num_sequences, secondbuf);
     printf("%s\n%s\n", mi->mod->name, mi->mod->type);
-    printf("RT %2.3fms ST%2.3fms MT %2.3fms\n", render_time / (SYS_TICK / 1000.0), screen_time / (SYS_TICK / 1000.0), (render_time + screen_time) / (SYS_TICK / 1000.0));
+    printf("RT%0.2fms ST%0.2fms MT%0.2fms\n", render_time / (SYS_TICK / 1000.0), screen_time / (SYS_TICK / 1000.0), (render_time + screen_time) / (SYS_TICK / 1000.0));
     printf("Status: %8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
 }
 
@@ -51,10 +51,9 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
     //bool isNNA = false;
     uint8_t _fxp = fxp;
     // ofxt[ch] = fxt;
-
-    if ((fxt == 1 || fxt == 2 || fxt == 3 || fxt == 4 || fxt == 6 || fxt == 7 ||
-         fxt == 9 ||
-         fxt == 0xa || fxt == 0x11 || fxt == 0xb4)) {
+    snprintf(_arg1, 6, "-----");
+    bool isBufferMem = handleFX(fxt, _fxp, _arg1, isFT);
+    if (isBufferMem) {
         if (fxp == 0) {
             _fxp = get_effect_memory(ch, ofxt, ofxp);
             isEFFM = true;
@@ -64,8 +63,6 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
         }
     }
 
-    snprintf(_arg1, 6, "-----");
-    handleFX(fxt, _fxp, _arg1, isFT);
     snprintf(buf, 20, "%-5.5s%s%02X\e[0m", _arg1,
              isEFFM ? "\e[36m" : "\e[0m", _fxp);
     // free(_arg1);
@@ -121,7 +118,7 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         }
         parse_fx(i, fx_buf, old_fxt, old_fxp, ev->fxt, ev->fxp, isFT, false);
         parse_fx(i, fx2_buf, old_f2t, old_f2p, ev->f2t, ev->f2p, isFT, true);
-        printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02d%02d %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
+        printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02X%02X %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
                ev->note != 0 ? '!' : ci->volume == 0 ? ' ' : 'G', ci->instrument, buf,
                ci->pitchbend < 0 ? "-" : "+", ci->pitchbend < 0 ? -(unsigned)ci->pitchbend : ci->pitchbend,
                ci->pan, ci->volume, ev->vol, fx_buf, fx2_buf, ind);
@@ -262,7 +259,7 @@ void show_channel_info_btm(struct xmp_frame_info *fi, struct xmp_module_info *mi
 
     printf("\n=Info=\n");
     printf("Channel %2d: smp/ins%02d:%02d\n", *s, cur_smp_n, cur_ins_n);
-    printf("%-5x %-5x ls%-5x le%-5x\n", cur_smp->len, fi->channel_info[*s].position, cur_smp->lps, cur_smp->lpe);
+    printf("s%-5x c%-5x ls%-5x le%-5x\n", cur_smp->len, fi->channel_info[*s].position, cur_smp->lps, cur_smp->lpe);
     printf("n:%-32.32s\n", cur_smp->name);
     printf("m> %s,%s\n", cur_smp->flg & XMP_SAMPLE_16BIT ? "16b" : " 8b", loopflg);
     printf("i:\"%-32.32s\"", xi->name);

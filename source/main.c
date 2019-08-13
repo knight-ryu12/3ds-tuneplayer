@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     song_num += searchsong(search_path[2], &ll);
     song_num += searchsong(search_path[3], &ll);
 
-    printf("Songs: %d\n", song_num);
+    printf("Songs: %ld\n", song_num);
     //_debug_pause();
     // TODO: do better job at this
     if (song_num == 0) {
@@ -337,7 +337,7 @@ int main(int argc, char *argv[]) {
             if (kHeld & KEY_L) {
                 // Does it even have a subsong to play?
                 if (mi.num_sequences >= 2) {
-                    if (mi.num_sequences >= subsong + 1) {
+                    if (mi.num_sequences > subsong + 1) {
                         playSound = 0;
                         while (!_PAUSE_FLAG) {
                             svcSleepThread(20000);
