@@ -58,10 +58,7 @@ void threadPlayStopHook(APT_HookType hook, void *param) {
 void printhelp() {
     printf("GREETZ TO ALL TUNE MAKERS!\n");
     printf("=CONTROLLS=\n");
-    printf("A = show channel info\n");
-    printf("B = show help\n");
-    printf("X = show instrument info\n");
-    printf("Y = show sample info\n");
+    printf("A = change screens\n");
     printf("DPAD LR = change songs\n");
     printf("DPAD UD = scroll\n");
     printf("Press UD with L pressed = change bottom screen info\n");
@@ -239,25 +236,25 @@ int main(int argc, char *argv[]) {
 
         show_generic_info(&fi, &mi, &top, &bot, model, subsong);
         /// 000 shows default info.
-        if (info_flag & 1) {
+        if (info_flag == 1) {
             if (!isPrint) {
                 show_instrument_info(&mi, &top, &bot, &scroll, subscroll);
                 isPrint = true;
             }
             show_channel_intrument_info(&fi, &mi, &top, &bot, &subscroll);
-        } else if (info_flag & 2) {
+        } else if (info_flag == 2) {
             if (!isPrint) {
                 show_sample_info(&mi, &top, &bot, &scroll);
                 isPrint = true;
             }
-        } else if (info_flag & 4) {
+        } else if (info_flag == 3) {
             //Help.
             if (!isPrint) {
                 consoleSelect(&top);
                 printhelp();
                 isPrint = true;
             }
-        } else if (info_flag & 8) {
+        } else if (info_flag == 8) {
             if (!isPrint) {
                 consoleSelect(&top);
                 show_playlist(ll, current_song, &top, &bot, 0);
@@ -274,12 +271,6 @@ int main(int argc, char *argv[]) {
         u32 kDown = hidKeysDown();
         u32 kHeld = hidKeysHeld();
 
-        if (kHeld) {
-            timer_cnt++;
-            //printf("%d\n", timer_cnt);
-        } else
-            timer_cnt = 0;
-
         if (kDown & KEY_R) {
             clean_console(&top, &bot);
             isPrint = false;
@@ -289,8 +280,12 @@ int main(int argc, char *argv[]) {
         if (kDown & KEY_A) {
             clean_console(&top, &bot);
             isPrint = false;
-            info_flag = 0b000;
+            if (info_flag++ > 3) {
+                // 012012012
+                info_flag = 0;
+            }
         }
+        /*
         if (kDown & KEY_B) {
             clean_console(&top, &bot);
             isPrint = false;
@@ -306,6 +301,7 @@ int main(int argc, char *argv[]) {
             isPrint = false;
             info_flag = 0b010;
         }
+        */
 
         if (kDown & KEY_SELECT) playSound ^= 1;
 
