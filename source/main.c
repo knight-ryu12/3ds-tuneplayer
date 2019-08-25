@@ -204,6 +204,8 @@ int main(int argc, char *argv[]) {
         }  // Break to exit.
         //gspWaitForVBlank();
         //gfxSwapBuffers();
+        gspWaitForVBlank();
+        gfxSwapBuffers();
         first = svcGetSystemTick();
         // Check loop cnt
 #ifndef DISABLE_LOOPCHK
@@ -257,9 +259,11 @@ int main(int argc, char *argv[]) {
         } else if (info_flag == 8) {
             if (!isPrint) {
                 consoleSelect(&top);
-                show_playlist(ll, current_song, &top, &bot, 0);
+                consoleClear();
+                show_playlist(ll, current_song, &top, &bot, &scroll);
                 isPrint = true;
             }
+
         } else {
             show_channel_info(&fi, &mi, &top, &bot, &scroll, isFT, subscroll);  // Fall back
             show_channel_info_btm(&fi, &mi, &top, &bot, &subscroll, isFT);
@@ -280,7 +284,7 @@ int main(int argc, char *argv[]) {
         if (kDown & KEY_A) {
             clean_console(&top, &bot);
             isPrint = false;
-            if (info_flag++ > 3) {
+            if (++info_flag > 3) {
                 // 012012012
                 info_flag = 0;
             }
@@ -310,15 +314,7 @@ int main(int argc, char *argv[]) {
             if (kHeld & KEY_L) {
                 subscroll++;
             } else {
-                struct xmp_module *xm = mi.mod;
-                //  does it have atleast 30 inst to show?
-                if (xm->ins > 30) {
-                    scroll++;
-                } else if (xm->chn > 30) {
-                    scroll++;
-                } else if (xm->smp > 30) {
-                    scroll++;
-                }
+                scroll++;
             }
         }
 
@@ -410,8 +406,6 @@ int main(int argc, char *argv[]) {
         }
         if (kDown & KEY_START) break;  // break in order to return to hbmenu
         screen_time = svcGetSystemTick() - first;
-        gspWaitForVBlank();
-        gfxSwapBuffers();
     }
 exit:
     playSound = 0;
