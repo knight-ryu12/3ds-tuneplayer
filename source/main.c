@@ -87,6 +87,28 @@ void clean_console(PrintConsole *top, PrintConsole *bot) {
     consoleClear();
 }
 
+// load song from list until one is found
+// remove bad songs from list
+// exit with non 0 if no song found and clear list
+// support initial loading if current_song was not set yet.
+int load_song(xmp_context c, struct xmp_module_info *mi, LinkedList* ll, LLNode **current_song, int *isFT, bool *released, bool next) {
+    if (*current_song) {
+        *current_song = next ? (*current_song)->next : (*current_song)->prev;
+        if (!*current_song) *current_song = next ? ll->front : ll->back;
+    }
+    else *current_song = next ? ll->front : ll->back;
+    if (!*current_song) return 1;
+    xmp_stop_module(c);
+    while (loadSongMemory(c, mi, (*current_song)->track_path, (*current_song)->directory, isFT, released)) {
+        LLNode *node = *current_song;
+        *current_song = next ? (*current_song)->next : (*current_song)->prev;
+        remove_single_node(ll, node);
+        if (!*current_song) *current_song = next ? ll->front : ll->back;
+        if (!*current_song) return 1; // congratulations! all songs were unable to load!
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     Result res;
     PrintConsole top, bot;
@@ -100,6 +122,8 @@ int main(int argc, char *argv[]) {
     static int isFT = 0;
     LLNode *current_song = NULL;
     aptHookCookie thr_playhook;
+    xmp_context c = NULL;
+    bool released = true;
 
     //char status_msg[32];
     //snprintf(&status_msg, 31, "");
@@ -136,7 +160,7 @@ int main(int argc, char *argv[]) {
     // Forcing Errdisp
     //ERRF_ThrowResultWithMessage(0xd800456a, "FailTest!");
     //sendError("TestError.\n", 0xFFFFFFFF);
-    xmp_context c = xmp_create_context();
+    c = xmp_create_context();
 
     LinkedList ll = create_list();
     // Saerch for songs; first.
@@ -154,8 +178,6 @@ int main(int argc, char *argv[]) {
         goto exit;
     }
 
-    current_song = ll.front;
-
     hidScanInput();
     uint32_t h = hidKeysHeld();
     if (h & KEY_R) {
@@ -171,9 +193,8 @@ int main(int argc, char *argv[]) {
     if (h & KEY_DUP) {
         _debug_pause();
     }
-    //if (loadSong(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
-    if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
-        printf("Error on loadSong !!!?\n");
+    if (load_song(c, &mi, &ll, &current_song, &isFT, &released, true) != 0) {
+        printf("No song loaded successfully.\n");
 
         goto exit;
     };
@@ -210,17 +231,13 @@ int main(int argc, char *argv[]) {
         // Check loop cnt
 #ifndef DISABLE_LOOPCHK
         if (fi.loop_count > 0) {
-            current_song = current_song->next;
-            if (current_song == NULL)
-                current_song = ll.front;
             playSound = 0;
             while (!_PAUSE_FLAG) {
                 svcSleepThread(20000);
             }
-            xmp_stop_module(c);
             clean_console(&top, &bot);
             gotoxy(0, 0);
-            if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+            if (load_song(c, &mi, &ll, &current_song, &isFT, &released, true) != 0) {
                 printf("Error on loadSong !!!?\n");
                 sendError("Error on loadsong...?\n", 0xFFFF0003);
                 //ERRF_ThrowResultWithMessage();
@@ -341,16 +358,13 @@ int main(int argc, char *argv[]) {
                     }
                 }
             } else {
-                current_song = current_song->next;
-                if (current_song == NULL) current_song = ll.front;
                 playSound = 0;
                 while (!_PAUSE_FLAG) {
                     svcSleepThread(20000);
                 }
-                xmp_stop_module(c);
                 clean_console(&top, &bot);
                 gotoxy(0, 0);
-                if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+                if (load_song(c, &mi, &ll, &current_song, &isFT, &released, true) != 0) {
                     printf("Error on loadSong !!!?\n");
                     goto exit;
                 };
@@ -382,16 +396,13 @@ int main(int argc, char *argv[]) {
                     }
                 }
             } else {
-                current_song = current_song->prev;
-                if (current_song == NULL) current_song = ll.back;
                 playSound = 0;
                 while (!_PAUSE_FLAG) {
                     svcSleepThread(20000);
                 }
-                xmp_stop_module(c);
                 clean_console(&top, &bot);
                 gotoxy(0, 0);
-                if (loadSongMemory(c, &mi, current_song->track_path, current_song->directory, &isFT) != 0) {
+                if (load_song(c, &mi, &ll, &current_song, &isFT, &released, false) != 0) {
                     printf("Error on loadSong !!!?\n");
                     goto exit;
                 };
@@ -412,14 +423,16 @@ exit:
     while (!_PAUSE_FLAG) {
         svcSleepThread(20000);
     }  // Sync
-    xmp_stop_module(c);
+    if(c) xmp_stop_module(c);
     //_debug_pause();
     aptUnhook(&thr_playhook);
     runSound = 0;
     threadJoin(snd_thr, U64_MAX);
-    xmp_end_player(c);
-    xmp_release_module(c);
-    xmp_free_context(c);
+    if(c) {
+        xmp_end_player(c);
+        if(!released) xmp_release_module(c);
+        xmp_free_context(c);
+    }
     free_list(&ll);
     aptExit();
     ndspExit();

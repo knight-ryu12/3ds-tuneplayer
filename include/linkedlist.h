@@ -25,6 +25,7 @@ void free_list(LinkedList* list);
 LLNode* create_node(const char* path, const char* dir);
 // Assumes both next and prev of the node are NULL
 void add_single_node(LinkedList* list, LLNode* node);
+void remove_single_node(LinkedList* list, LLNode* node);
 
 /*
 main store a list created with create_list(),

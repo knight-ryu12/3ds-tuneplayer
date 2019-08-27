@@ -8,9 +8,9 @@
 #define O3DS_BLOCK 4096
 // can someone find sweet spot?
 
-extern int runSound, playSound;
+extern volatile int runSound, playSound;
 extern struct xmp_frame_info fi;
-extern uint64_t render_time;
+extern volatile uint64_t render_time;
 
 extern volatile uint32_t _PAUSE_FLAG;
 

@@ -17,8 +17,8 @@ static uint8_t old_fxt[256];
 static uint8_t old_fxp[256];
 static uint8_t old_f2t[256];
 static uint8_t old_f2p[256];
-extern uint64_t render_time;
-extern uint64_t screen_time;
+extern volatile uint64_t render_time;
+extern volatile uint64_t screen_time;
 extern volatile uint32_t _PAUSE_FLAG;
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
