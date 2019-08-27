@@ -63,3 +63,34 @@ void add_single_node(LinkedList* list, LLNode* node) {
         list->size++;
     }
 }
+
+void remove_single_node(LinkedList* list, LLNode* node) {
+    //just some simple checks
+    //quit if list is null or size is 0
+    //or if node is null
+    //if node previous is null, is expected to be list front. if not, quit
+    //if node next is null, is expected to be list back. if not, quit
+    if (!list || list->size == 0 || !node || (node->prev == NULL && list->front != node) || (node->next == NULL && list->back != node))
+        return;
+    
+    if(list->front == node)
+        list->front = node->next;
+    if(list->back == node)
+        list->back = node->prev;
+
+    if(node->prev)
+        node->prev->next = node->next;
+    if(node->next)
+        node->next->prev = node->prev;
+
+    free(node->track_path);
+    free(node->directory);
+    free(node);
+
+    list->size--;
+
+    if(list->size == 0) {
+        list->front = NULL;
+        list->back = NULL;
+    }
+}

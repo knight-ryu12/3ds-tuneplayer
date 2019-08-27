@@ -7,6 +7,9 @@
 #include "linkedlist.h"
 #include "sndthr.h"
 
+//this undefined makes loading directory slower, but it's an option
+#define DISABLE_LOADCHECK
+
 #define MEMBLOCK_SIZE 4096
 // on over 2MB song, this value will be used
 
@@ -21,7 +24,7 @@ int initXMP(char *path, xmp_context c, struct xmp_module_info *mi) {
     return 0;
 }
 
-int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT) {
+int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT, bool* released) {
     FILE *fp = NULL;
     struct xmp_test_info ti;
     int32_t res;
@@ -31,7 +34,10 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     chdir(dir);
     //xmp_stop_module(c);
     xmp_end_player(c);
-    xmp_release_module(c);
+    if(!released || !*released) {
+        xmp_release_module(c);
+        if(released) *released = true;
+    }
     // Then
     free(buffer_ptr);
     //buffer_ptr = NULL;
@@ -52,6 +58,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     if (buffer_ptr == NULL) {
         //???????
         printf("Memory Allocation Error!\n");
+        fclose(fp);
         return 1;
     }
     printf("malloced at %8p\n", buffer_ptr);
@@ -88,6 +95,9 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     xmp_set_player(c, XMP_PLAYER_VOICES, 256);
     //_debug_pause();
     fclose(fp);
+
+    // we loaded so we'll need releasing next time
+    if(released) *released = false;
 
     return 0;
 }
@@ -127,11 +137,27 @@ uint32_t searchsong(const char *searchPath, LinkedList *list) {
         return 0;
     }  // Folder non-existent;
     struct dirent *de;
+    #ifndef DISABLE_LOADCHECK
+    char* pathbuf = malloc(PATH_MAX+1);
+    if (!pathbuf)
+        printf("Couldn't allocate path buffer.\nModules will only be tested at loading.\n");
+    #endif
     for (de = readdir(searchDir); de != NULL; de = readdir(searchDir)) {
         if (de->d_name[0] == '.') continue;  // don't include . or .. and dot-files
+        if (de->d_type != DT_REG) continue;  // don't include non files, e.g. folders
+        #ifndef DISABLE_LOADCHECK
+        if (pathbuf) {
+            snprintf(pathbuf, PATH_MAX+1, "%s%s%s", searchPath, searchPath[strlen(searchPath)-1] == '/' ? "" : "/", de->d_name);
+            if (xmp_test_module(pathbuf, NULL))
+                printf("Skipping %s, failed module test.\n", de->d_name);
+        }
+        #endif
         printf("Adding %s\n", de->d_name);
         add_single_node(list, create_node(de->d_name, searchPath));
         count++;
     }
+    #ifndef DISABLE_LOADCHECK
+    free(pathbuf);
+    #endif
     return count;
 }
