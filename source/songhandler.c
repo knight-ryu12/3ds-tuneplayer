@@ -73,15 +73,19 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
             printf("error on reading\n");
             break;
         }
-        printf("Load%8p rem %08lx read%4ld\r", buffer_ptr + i, buffer_sz - i, res);
+        printf("Load%8p rem%08lX read%4ld\r", buffer_ptr + i, buffer_sz - i, res);
     }
     printf("\n");
     // Try testing first
     // this is what initXMP do
     res = xmp_load_module_from_memory(c, buffer_ptr, buffer_sz);
     printf("xmp loadstate %ld\n", res);
+    if(res!=0) {
+    	printf("loadstate != 0!?\n");
+	return 3;
+    }
     xmp_get_module_info(c, mi);
-    if (strstr(mi->mod->type, "XM") != NULL) {
+    if (strstr(mi->mod->type, "XM") != NULL || strstr(mi->mod->type, "MOD")!=NULL) {
         printf("XM Mode\n");
         *isFT = 1;
     } else
