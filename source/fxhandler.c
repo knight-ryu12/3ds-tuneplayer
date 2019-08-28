@@ -162,6 +162,10 @@ bool handleFX(uint8_t fxt, uint8_t fxp, char *_arg1, bool isFT) {
             snprintf(_arg1, 6, "SETtP");
             break;
             // Btw; Txx effect is kinda special
+	case 0x80:
+	    snprintf(_arg1,6,"TRLvL");
+	    break;
+
 
         default:
             snprintf(_arg1, 6, "???%02X", fxt);
