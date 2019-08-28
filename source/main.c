@@ -13,8 +13,7 @@
 #include "songhandler.h"
 #include "songview.h"
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
-
-#define DISABLE_LOOPCHK
+#define DISABLE_LOOPCHK // Soon I'll enable this.
 
 // 3ds-tuneplayer backed by libxmp (CMatsuoka, thx), by Chromaryu
 // "80's praise on 2012 hardware" - Chromaryu
@@ -30,7 +29,7 @@ volatile uint32_t _PAUSE_FLAG;
 
 int player_config = 0;
 
-char *search_path[] = {"romfs:/", "sdmc:/mod", "sdmc:/mods", "sdmc:/3ds/3ds-tuneplayer/mod"};
+char *search_path[] = {"romfs:/", "sdmc:/mod", "sdmc:/mods"}; //Check Path
 
 void threadPlayStopHook(APT_HookType hook, void *param) {
     switch (hook) {
@@ -100,11 +99,12 @@ int load_song(xmp_context c, struct xmp_module_info *mi, LinkedList* ll, LLNode 
     if (!*current_song) return 1;
     xmp_stop_module(c);
     while (loadSongMemory(c, mi, (*current_song)->track_path, (*current_song)->directory, isFT, released)) {
+	printf("Bad song detected\n");
         LLNode *node = *current_song;
         *current_song = next ? (*current_song)->next : (*current_song)->prev;
         remove_single_node(ll, node);
         if (!*current_song) *current_song = next ? ll->front : ll->back;
-        if (!*current_song) return 1; // congratulations! all songs were unable to load!
+        if (!*current_song) return 1; // congratulations! all songs were u@nable to load!
     }
     return 0;
 }
@@ -137,15 +137,16 @@ int main(int argc, char *argv[]) {
 
     res = romfsInit();
     printf("romFSInit %08lx\n", res);
+    // TODO: check those test to see if it will work.
     if (R_FAILED(res)) {
         sendError("Failed to initalize romfs... please check filesystem and such!\n", 0xFFFF0000);
-        //printf("Failed to initalize romfs...\n");
+        printf("Failed to initalize romfs...\n");
         goto exit;
     }
     res = setup_ndsp();
     printf("setup_ndsp: %08lx\n", res);
     if (R_FAILED(res)) {
-        //printf("Failed to initalize NDSP...\n");
+        printf("Failed to initalize NDSP...\n");
         sendError("Failed to initalize NDSP... have you dumped your DSP rom?\n", 0xFFFF0001);
         goto exit;
     }
@@ -157,23 +158,20 @@ int main(int argc, char *argv[]) {
         goto exit;
     }
     aptHook(&thr_playhook, threadPlayStopHook, NULL);
-    // Forcing Errdisp
-    //ERRF_ThrowResultWithMessage(0xd800456a, "FailTest!");
-    //sendError("TestError.\n", 0xFFFFFFFF);
     c = xmp_create_context();
 
     LinkedList ll = create_list();
     // Saerch for songs; first.
-    song_num += searchsong(search_path[0], &ll);
+    // TODO: more nicer solution
+    song_num += searchsong(search_path[0], &ll); //Atleast, leave this one alone.
     song_num += searchsong(search_path[1], &ll);
     song_num += searchsong(search_path[2], &ll);
-    song_num += searchsong(search_path[3], &ll);
 
     printf("Songs: %ld\n", song_num);
     //_debug_pause();
     // TODO: do better job at this
     if (song_num == 0) {
-        //printf("There's no song at any of folders I've searched!\n");
+        printf("There's no song at any of folders I've searched!\n");
         sendError("There's no songs playable!\n", 0xC0000000);
         goto exit;
     }
@@ -195,7 +193,6 @@ int main(int argc, char *argv[]) {
     }
     if (load_song(c, &mi, &ll, &current_song, &isFT, &released, true) != 0) {
         printf("No song loaded successfully.\n");
-
         goto exit;
     };
     clean_console(&top, &bot);
@@ -219,12 +216,11 @@ int main(int argc, char *argv[]) {
     uint64_t first = 0;
     runMain = 1;
     bool isPrint = false;
+
     while (aptMainLoop()) {
         if (!runMain) {
             break;
         }  // Break to exit.
-        //gspWaitForVBlank();
-        //gfxSwapBuffers();
         gspWaitForVBlank();
         gfxSwapBuffers();
         first = svcGetSystemTick();
@@ -238,16 +234,15 @@ int main(int argc, char *argv[]) {
             clean_console(&top, &bot);
             gotoxy(0, 0);
             if (load_song(c, &mi, &ll, &current_song, &isFT, &released, true) != 0) {
+		// This should not happen.
                 printf("Error on loadSong !!!?\n");
                 sendError("Error on loadsong...?\n", 0xFFFF0003);
-                //ERRF_ThrowResultWithMessage();
                 goto exit;
             }
             //_debug_pause();
             clean_console(&top, &bot);
             render_time = screen_time = 0;
             first = svcGetSystemTick();
-
             scroll = 0;
             playSound = 1;
         }
@@ -276,7 +271,7 @@ int main(int argc, char *argv[]) {
         } else if (info_flag == 8) {
             if (!isPrint) {
                 consoleSelect(&top);
-                consoleClear();
+                consoleClear(); // This'll stop garbage
                 show_playlist(ll, current_song, &top, &bot, &scroll);
                 isPrint = true;
             }
