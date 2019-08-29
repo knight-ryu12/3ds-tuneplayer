@@ -86,28 +86,6 @@ void clean_console(PrintConsole *top, PrintConsole *bot) {
     consoleClear();
 }
 
-// load song from list until one is found
-// remove bad songs from list
-// exit with non 0 if no song found and clear list
-// support initial loading if current_song was not set yet.
-int load_song(xmp_context c, struct xmp_module_info *mi, LinkedList* ll, LLNode **current_song, int *isFT, bool *released, bool next) {
-    if (*current_song) {
-        *current_song = next ? (*current_song)->next : (*current_song)->prev;
-        if (!*current_song) *current_song = next ? ll->front : ll->back;
-    }
-    else *current_song = next ? ll->front : ll->back;
-    if (!*current_song) return 1;
-    xmp_stop_module(c);
-    while (loadSongMemory(c, mi, (*current_song)->track_path, (*current_song)->directory, isFT, released)) {
-        printf("Bad song detected\n");
-        LLNode *node = *current_song;
-        *current_song = next ? (*current_song)->next : (*current_song)->prev;
-        remove_single_node(ll, node);
-        if (!*current_song) *current_song = next ? ll->front : ll->back;
-        if (!*current_song) return 1; // congratulations! all songs were unable to load!
-    }
-    return 0;
-}
 
 int main(int argc, char *argv[]) {
     Result res;

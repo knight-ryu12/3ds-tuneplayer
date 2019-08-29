@@ -31,7 +31,11 @@ include $(DEVKITARM)/3ds_rules
 #     - icon.png
 #     - <libctru folder>/default_icon.png
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
+APP_TITLE := 3ds-tuneplayer
+APP_DESCRIPTION := mmh... libxmp...
+APP_AUTHOR := Chromaryu
+
+TARGET		:=	$(APP_TITLE)
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
@@ -58,10 +62,6 @@ ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 LIBS	:= -lxmp -lctru -lm
-
-APP_TITLE := 3ds-tuneplayer
-APP_DESCRIPTION := mmh... libxmp...
-APP_AUTHOR := Chromaryu
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
