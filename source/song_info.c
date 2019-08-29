@@ -25,17 +25,20 @@ extern volatile uint32_t _PAUSE_FLAG;
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
     const float SYS_TICK = CPU_TICKS_PER_MSEC;  // seems like 3ds uses this clock no matter what
-    char secondbuf[22];
+    char timebuf[22];
+    char infobuf[512];
+    int cur = 0;
     snprintf(secondbuf, 22, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
-    printf("Pos[%02X/%02X] Pat[%02X/%02X] Row[%02X/%02X]\nSpd%1X BPM%3d LC%1d Ss%1d(%1d)/%1d\nChn[%02X/%02X] %s\n",
+    cur += snprintf(infobuf,128,"Pos[%02X/%02X] Pat[%02X/%02X] Row[%02X/%02X]\nSpd%1X BPM%3d LC%1d Ss%1d(%1d)/%1d\nChn[%02X/%02X] %s\n",
            fi->pos, mi->mod->len - 1, fi->pattern, mi->mod->pat - 1, fi->row, fi->num_rows - 1,
            fi->speed, fi->bpm, fi->loop_count, cur_subsong, fi->sequence, mi->num_sequences - 1,
            fi->virt_used, fi->virt_channels, secondbuf);
-    printf("%s\n%s\n", mi->mod->name, mi->mod->type);
-    printf("RT%0.2fms ST%0.2fms MT%0.2fms     \n", render_time / SYS_TICK, screen_time / SYS_TICK, (render_time + screen_time) / SYS_TICK);
-    printf("Status: %8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
+    cur += snprintf(infobuf,128,"%s\n%s\n", mi->mod->name, mi->mod->type);
+    cur += snprintf(infobuf,128,"RT%0.2fms ST%0.2fms MT%0.2fms     \n", render_time / SYS_TICK, screen_time / SYS_TICK, (render_time + screen_time) / SYS_TICK);
+    cur += snprintf(infobuf,128,"Status: %-8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
+    printf("%s",infobuf);
 }
 
 void set_effect_memory(int ch, uint8_t fxp, uint8_t fxt, uint8_t *ofxt,
