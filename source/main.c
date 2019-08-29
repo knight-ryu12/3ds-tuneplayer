@@ -99,7 +99,7 @@ int load_song(xmp_context c, struct xmp_module_info *mi, LinkedList* ll, LLNode 
     if (!*current_song) return 1;
     xmp_stop_module(c);
     while (loadSongMemory(c, mi, (*current_song)->track_path, (*current_song)->directory, isFT, released)) {
-	printf("Bad song detected\n");
+        printf("Bad song detected\n");
         LLNode *node = *current_song;
         *current_song = next ? (*current_song)->next : (*current_song)->prev;
         remove_single_node(ll, node);
@@ -272,7 +272,7 @@ int main(int argc, char *argv[]) {
             if (!isPrint) {
                 consoleSelect(&top);
                 consoleClear(); // This'll stop garbage
-                show_playlist(ll, current_song, &top, &bot, &scroll);
+                show_playlist(&ll, current_song, &top, &bot, &scroll);
                 isPrint = true;
             }
 

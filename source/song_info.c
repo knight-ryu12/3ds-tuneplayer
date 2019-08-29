@@ -2,13 +2,14 @@
 #include <3ds.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <xmp.h>
 #include "fxhandler.h"
 
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
-static char *note_name[] = {"C-", "C#", "D-", "D#", "E-", "F-",
-                            "F#", "G-", "G#", "A-", "A#", "B-"};
+static const char *note_name[] = {"C-", "C#", "D-", "D#", "E-", "F-",
+                                  "F#", "G-", "G#", "A-", "A#", "B-"};
 static char buf[16];
 static char fx_buf[32];
 static char fx2_buf[32];
@@ -20,11 +21,12 @@ static uint8_t old_f2p[256];
 extern volatile uint64_t render_time;
 extern volatile uint64_t screen_time;
 extern volatile uint32_t _PAUSE_FLAG;
+
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
-    uint32_t SYS_TICK = SYSCLOCK_ARM11;  // seems like 3ds uses this clock no matter what
-    char secondbuf[32];
-    snprintf(secondbuf, 32, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
+    const float SYS_TICK = CPU_TICKS_PER_MSEC;  // seems like 3ds uses this clock no matter what
+    char secondbuf[22];
+    snprintf(secondbuf, 22, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
     printf("Pos[%02X/%02X] Pat[%02X/%02X] Row[%02X/%02X]\nSpd%1X BPM%3d LC%1d Ss%1d(%1d)/%1d\nChn[%02X/%02X] %s\n",
@@ -32,7 +34,7 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
            fi->speed, fi->bpm, fi->loop_count, cur_subsong, fi->sequence, mi->num_sequences - 1,
            fi->virt_used, fi->virt_channels, secondbuf);
     printf("%s\n%s\n", mi->mod->name, mi->mod->type);
-    printf("RT%0.2fms ST%0.2fms MT%0.2fms\n", render_time / (SYS_TICK / 1000.0), screen_time / (SYS_TICK / 1000.0), (render_time + screen_time) / (SYS_TICK / 1000.0));
+    printf("RT%0.2fms ST%0.2fms MT%0.2fms     \n", render_time / SYS_TICK, screen_time / SYS_TICK, (render_time + screen_time) / SYS_TICK);
     printf("Status: %8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
 }
 
@@ -48,12 +50,12 @@ uint8_t get_effect_memory(int ch, uint8_t *ofxt, uint8_t *ofxp) {
 
 void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
               uint8_t fxp, bool isFT, bool isf2) {
-    static char _arg1[8];
+    char _arg1[8];
     bool isEFFM = false;
     //bool isNNA = false;
     uint8_t _fxp = fxp;
     // ofxt[ch] = fxt;
-    snprintf(_arg1, 6, "-----");
+    strcpy(_arg1, "-----");
     bool isBufferMem = handleFX(fxt, _fxp, _arg1, isFT);
     if (isBufferMem) {
         if (fxp == 0) {
@@ -106,7 +108,7 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         struct xmp_channel_info *ci = &fi->channel_info[i];
         struct xmp_event *ev = &ci->event;
         if (ev->note > 0x80)
-            snprintf(buf, 15, "===");
+            strcpy(buf, "===");
         else if (ev->note > 0) {
             snprintf(buf, 15, "\e[34;1m%s%d\e[0m", note_name[ev->note % 12],
                      ev->note / 12);
@@ -115,7 +117,7 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
             snprintf(buf, 15, "\e[36;1m%s%d\e[0m", note_name[old_note[i] % 12],
                      old_note[i] / 12);
         } else {
-            snprintf(buf, 15, "---");
+            strcpy(buf, "---");
             old_note[i] = 0;
         }
         parse_fx(i, fx_buf, old_fxt, old_fxp, ev->fxt, ev->fxp, isFT, false);

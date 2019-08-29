@@ -4,12 +4,12 @@
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 static uint32_t song_number_calc = 0;
 
-void show_playlist(LinkedList ll, LLNode *current,
+void show_playlist(LinkedList *ll, LLNode *current,
                    PrintConsole *top, PrintConsole *bot, int *f, int *subscroll) {
     consoleSelect(top);
 
     gotoxy(0, 0);
-    LLNode *cur = ll.front;
+    LLNode *cur = ll->front;
     //printf("Cur -> %s%s\n", current->directory, current->track_path);
     int i = 0;
     int toscroll = *f;
@@ -43,7 +43,7 @@ void show_playlist(LinkedList ll, LLNode *current,
         *f = toscroll;
         // pat c (toscroll reaches (xm->ins-29))
     }
-    cur = ll.front;  // Reset
+    cur = ll->front;  // Reset
     for (i = 0; i < toscroll; i++) {
         cur = cur->next;
         if (cur == NULL) break;
