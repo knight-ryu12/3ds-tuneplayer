@@ -104,7 +104,7 @@ int load_song(xmp_context c, struct xmp_module_info *mi, LinkedList* ll, LLNode 
         *current_song = next ? (*current_song)->next : (*current_song)->prev;
         remove_single_node(ll, node);
         if (!*current_song) *current_song = next ? ll->front : ll->back;
-        if (!*current_song) return 1; // congratulations! all songs were u@nable to load!
+        if (!*current_song) return 1; // congratulations! all songs were unable to load!
     }
     return 0;
 }

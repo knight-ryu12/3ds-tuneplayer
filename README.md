@@ -2,6 +2,10 @@
 
 libxmp based module music player!
 
+# what's even "module"?
+
+It's tracker format.(TBD)
+
 # Shout and greetz to
 CMatsuoka for libxmp
 
