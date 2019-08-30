@@ -14,11 +14,11 @@ makedepends=('3ds-pkg-config' 'devkitpro-pkgbuild-helpers')
 build() {
     cd "$pkgname"
         source /opt/devkitpro/3dsvars.sh
- 
+
         autoreconf -fi
         ./configure --prefix="${PORTLIBS_PREFIX}" --host=arm-none-eabi \
                     --disable-shared --enable-static
-        make
+        make 
 }
  
 package() {

@@ -4,8 +4,8 @@
 #include <string.h>
 #include <xmp.h>
 
-#define N3DS_BLOCK 3072
-#define O3DS_BLOCK 4096
+#define N3DS_BLOCK 4096
+#define O3DS_BLOCK 8192
 // can someone find sweet spot?
 
 extern volatile int runSound, playSound;
@@ -36,7 +36,7 @@ void soundThread(void *arg) {
     int16_t *sample;
     int cur_wvbuf = 0;
 
-    sample = linearAlloc(BLOCK * sizeof(int16_t) * 2);
+    sample = linearAlloc(BLOCK * sizeof(int16_t) * 2); // Buffer size * 16bit * stereo
     memset(waveBuf, 0, sizeof(waveBuf));
     waveBuf[0].data_vaddr = sample;
     waveBuf[1].data_vaddr = sample + BLOCK;
@@ -69,7 +69,7 @@ void soundThread(void *arg) {
 
         int16_t *sbuf = (int16_t *)waveBuf[cur_wvbuf].data_vaddr;
         xmp_play_buffer(c, sbuf, BLOCK, 0);
-        waveBuf[cur_wvbuf].nsamples = BLOCK / 4;
+        waveBuf[cur_wvbuf].nsamples = BLOCK /4; // Because of interleve
 
         DSP_FlushDataCache(sbuf, BLOCK);
         ndspChnWaveBufAdd(CHANNEL, &waveBuf[cur_wvbuf]);
@@ -77,7 +77,7 @@ void soundThread(void *arg) {
         render_time = svcGetSystemTick() - first;
         while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && runSound)
             //svcSleepThread(10e9 / (BLOCK / 2));
-            svcSleepThread(100000000 / (BLOCK / 2));
+            svcSleepThread(10000000 / (BLOCK / 2));
     }
 exit:
     ndspChnWaveBufClear(CHANNEL);
