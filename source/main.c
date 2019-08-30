@@ -248,9 +248,9 @@ int main(int argc, char *argv[]) {
             }
         } else if (info_flag == 8) {
             if (!isPrint) {
-                consoleSelect(&top);
-                consoleClear(); // This'll stop garbage
-                show_playlist(&ll, current_song, &top, &bot, &scroll);
+                //consoleSelect(&top);
+                //consoleClear(); // This'll stop garbage
+                show_playlist(&ll, current_song, &top, &bot, &scroll,&subscroll);
                 isPrint = true;
             }
 
