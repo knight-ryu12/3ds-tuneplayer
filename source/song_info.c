@@ -35,9 +35,9 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
            fi->pos, mi->mod->len - 1, fi->pattern, mi->mod->pat - 1, fi->row, fi->num_rows - 1,
            fi->speed, fi->bpm, fi->loop_count, cur_subsong, fi->sequence, mi->num_sequences - 1,
            fi->virt_used, fi->virt_channels, secondbuf);
-    cur += snprintf(infobuf,128,"%s\n%s\n", mi->mod->name, mi->mod->type);
-    cur += snprintf(infobuf,128,"RT%0.2fms ST%0.2fms MT%0.2fms     \n", render_time / SYS_TICK, screen_time / SYS_TICK, (render_time + screen_time) / SYS_TICK);
-    cur += snprintf(infobuf,128,"Status: %-8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
+    cur += snprintf(&infobuf[cur],128,"%s\n%s\n", mi->mod->name, mi->mod->type);
+    cur += snprintf(&infobuf[cur],128,"RT%0.2fms ST%0.2fms MT%0.2fms     \n", render_time / SYS_TICK, screen_time / SYS_TICK, (render_time + screen_time) / SYS_TICK);
+    cur += snprintf(&infobuf[cur],128,"Status: %-8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
     printf("%s",infobuf);
 }
 
