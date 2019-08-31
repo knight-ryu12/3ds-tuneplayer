@@ -6,9 +6,11 @@
 #include <unistd.h>
 #include <xmp.h>
 
-bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char *_arg1, bool isFT) {
+bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool isFT) {
     bool isBufferMem = false;
     uint8_t h, l;
+    h = (fxp >> 4) & 0xF;
+    l = fxp & 0xF;
     switch (fxt) {
         case 0:
         case 0xb4:
@@ -56,8 +58,6 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char *_arg1, bool i
         case 0xa4:
             if (isFT) goto ft2;
             // S3M/IT
-            h = (fxp >> 4) & 0xF;
-            l = fxp & 0xF;
             if (l == 0xF && h != 0)
                 *p_arg1 = "VOLsU";
             else if (h == 0xf && l != 0)
@@ -71,9 +71,9 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char *_arg1, bool i
             break;
         ft2:
             isBufferMem = true;
-            if ((fxp & 0x0F) == 0 && (fxp >> 4 & 0xF) > 0)  // Up
+            if (l == 0 && h > 0)  // Up
                 *p_arg1 = "VOLsU";
-            else if (((fxp >> 4) & 0xF) == 0 && (fxp & 0x0F) > 0)  // Down
+            else if (h == 0 && l > 0)  // Down
                 *p_arg1 = "VOLsD";
             break;
 
@@ -88,9 +88,6 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char *_arg1, bool i
             break;
         case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
                     // it down
-            h = (fxp >> 4) & 0xF;
-            l = fxp & 0xF;
-            fxp = l;
             switch (h) {
                 default:
                     break;
@@ -166,7 +163,6 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char *_arg1, bool i
         case 0x80:
             *p_arg1 = "TRLvL";
             break;
-
 
         default:
             snprintf(_arg1, 6, "???%02X", fxt);
