@@ -96,6 +96,12 @@ int Player_Init(Player* player) {
     Player_InitConsoles(player);
     if (Player_InitServices()) return 1;
     aptHook(&player->apthook, Player_AptHook, (void*)player);
+
+    LightEvent_Init(&player->playready_event, RESET_ONESHOT);
+    LightEvent_Init(&player->resume_event, RESET_ONESHOT);
+    LightEvent_Init(&player->pause_event, RESET_ONESHOT);
+    LightEvent_Init(&player->ndspcallback_event, RESET_ONESHOT);
+
     player->ll = create_list();
 
     u32 song_num = 0;
@@ -120,27 +126,28 @@ int Player_Init(Player* player) {
     player->ctx = xmp_create_context();
     if (!player->ctx) {
         free_list(&player->ll);
-        return 4;
+        return 3;
     }
 
     int model = try_speedup();
     int dmodel = get_debug_testing_model();
+    dmodel = dmodel < 0 ? model : dmodel;
 
     if (model < 0) {
         free_list(&player->ll);
         xmp_free_context(player->ctx);
         player->ctx = NULL;
-        return 5;
+        return 4;
     }
 
-    player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, model ? 750 : 400);
+    player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, dmodel ? 750 : 400);
 
     player->audio_stream = linearAlloc(player->block_size * 8);
     if (!player->audio_stream) {
         free_list(&player->ll);
         xmp_free_context(player->ctx);
         player->ctx = NULL;
-        return 6;
+        return 5;
     }
 
     for (int i = 0; i < 8; i++) {
@@ -149,34 +156,45 @@ int Player_Init(Player* player) {
     }
 
     player->cur_wvbuf = 0;
-    player->printf_wvbuf = 0;
+
+    player->terminate_flag = 0;
 
     if (Player_NextSong(player) != 0) {
         free_list(&player->ll);
         xmp_free_context(player->ctx);
+        linearFree(player->audio_stream);
         player->ctx = NULL;
-        return 7;
+        player->audio_stream = NULL;
+        return 6;
     };
 
     Player_ClearConsoles(player);
-
+    xmp_get_frame_info(player->ctx, &player->finfos[0]);
     Player_SelectBottom(player);
 
-    LightEvent_Init(&player->pausewakeup_event, RESET_ONESHOT);
-    LightEvent_Init(&player->ndspcallback_event, RESET_ONESHOT);
+    if (Player_InitThread(player, model) != 0) {
+        free_list(&player->ll);
+        xmp_free_context(player->ctx);
+        linearFree(player->audio_stream);
+        player->ctx = NULL;
+        player->audio_stream = NULL;
+        return 7;
+    };
 
     player->render_time = 0LLU;
     player->screen_time = 0LLU;
-    player->run_sound = 1;
-    player->play_sound = 0;
-    player->pause_flag = 0;
-    player->terminate_flag = 0;
 
     return 0;
 }
 
 void Player_Exit(Player* player) {
-    player->terminate_flag;
+    player->terminate_flag = 1;
+    player->run_sound = 0;
+    // wake up thread if waiting currently for anything
+    LightEvent_Signal(&player->playready_event);
+    LightEvent_Signal(&player->resume_event);
+    LightEvent_Signal(&player->pause_event);
+    LightEvent_Signal(&player->ndspcallback_event);
     threadJoin(player->sound_thread, U64_MAX);
     if(player->ctx) xmp_stop_module(player->ctx);
     //_debug_pause();
@@ -184,9 +202,11 @@ void Player_Exit(Player* player) {
     player->run_sound = 0;
     if(player->ctx) {
         xmp_end_player(player->ctx);
-        if(!player->context_released) xmp_release_module(player->ctx);
+        if(!player->context_released)
+        	xmp_release_module(player->ctx);
         xmp_free_context(player->ctx);
     }
+    linearFree(player->audio_stream);
     free_list(&player->ll);
     aptExit();
     ndspExit();

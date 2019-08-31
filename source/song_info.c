@@ -37,7 +37,7 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
            fi->virt_used, fi->virt_channels, timebuf);
     cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur), "%s\n%s\n", mi->mod->name, mi->mod->type);
     cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur),"RT%0.2fms ST%0.2fms MT%0.2fms     \n", g_player.render_time / SYS_TICK, g_player.screen_time / SYS_TICK, (g_player.render_time + g_player.screen_time) / SYS_TICK);
-    cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur),"Status: %-8s\n", g_player.pause_flag ? "Paused" : "Playing");
+    cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur),"Status: %-8s\n", !g_player.play_sound ? "Paused" : "Playing");
     write(STDOUT_FILENO, infobuf, cur > 256 ? 256 : cur);
 }
 

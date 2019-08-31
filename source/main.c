@@ -42,53 +42,16 @@ void printhelp() {
 }
 
 int main(int argc, char *argv[]) {
-    int32_t main_prio;
-    uint8_t info_flag = 0b00000000;
-    uint8_t subsong = 0;
+    u8 info_flag = 0b00000000;
 
     if(Player_Init(&g_player))
         return 0;
 
-    /*
-    hidScanInput();
-    uint32_t h = hidKeysHeld();
-    if (h & KEY_R) {
-        model = 0;
-        printf("Model force 0.\n");
-        _debug_pause();
-    }
-    if (h & KEY_L) {
-        model = 1;
-        printf("Model force 1.\n");
-        _debug_pause();
-    }
-    if (h & KEY_DUP) {
-        _debug_pause();
-    }
-    if (load_song(c, &mi, &ll, &current_song, &isFT, &released, true) != 0) {
-        printf("No song loaded successfully.\n");
-        goto exit;
-    };
-    Player_ClearConsoles(&g_player);
-    xmp_get_frame_info(c, &fi);
-    consoleSelect(&g_player.bot);
-    
-
-    svcGetThreadPriority(&main_prio, CUR_THREAD_HANDLE);
-    struct thread_data a = {c, model};
-    if (h & KEY_L) {
-        model = 0;
-    }
-    snd_thr = threadCreate(soundThread, &a, 32768, main_prio + 1,
-                           model == 0 ? 0 : 2, true);
-    consoleSelect(&g_player.top);
-    */
-
     int scroll = 0;
     int subscroll = 0;
-    uint64_t timer_cnt = 0;
+    u64 timer_cnt = 0;
     // Main loop
-    uint64_t first = 0;
+    u64 first = 0;
     bool isPrint = false;
 
     while (aptMainLoop()) {
@@ -101,35 +64,31 @@ int main(int argc, char *argv[]) {
         // Check loop cnt
 #ifndef DISABLE_LOOPCHK
         if (fi.loop_count > 0) {
-            g_player.play_sound = 0;
-            while (!g_player.pause_flag) {
-                svcSleepThread(20000);
-            }
             Player_ClearConsoles(&g_player);
             gotoxy(0, 0);
+            Player_StopSong(&g_player);
             if (Player_NextSong(&g_player) != 0) {
             // This should not happen.
                 printf("Error on loadSong !!!?\n");
                 sendError("Error on loadsong...?\n", 0xFFFF0003);
-                goto exit;
+                break;
             }
             //_debug_pause();
             Player_ClearConsoles(&g_player);
             g_player.render_time = g_player.screen_time = 0;
             first = svcGetSystemTick();
             scroll = 0;
-            g_player.play_sound = 1;
         }
 #endif
 
-        show_generic_info(&g_player.finfos[g_player.printf_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, g_player.subsong);
+        show_generic_info(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, g_player.subsong);
         /// 000 shows default info.
         if (info_flag == 1) {
             if (!isPrint) {
                 show_instrument_info(&g_player.minfo, &g_player.top, &g_player.bot, &scroll, subscroll);
                 isPrint = true;
             }
-            show_channel_intrument_info(&g_player.finfos[g_player.printf_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &subscroll);
+            show_channel_intrument_info(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &subscroll);
         } else if (info_flag == 2) {
             if (!isPrint) {
                 show_sample_info(&g_player.minfo, &g_player.top, &g_player.bot, &scroll);
@@ -146,13 +105,13 @@ int main(int argc, char *argv[]) {
             if (!isPrint) {
                 //consoleSelect(&g_player.top);
                 //consoleClear(); // This'll stop garbage
-                show_playlist(&g_player.ll, &g_player.current_song, &g_player.top, &g_player.bot, &scroll, &subscroll);
+                show_playlist(&g_player.ll, g_player.current_song, &g_player.top, &g_player.bot, &scroll, &subscroll);
                 isPrint = true;
             }
 
         } else {
-            show_channel_info(&g_player.finfos[g_player.printf_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &scroll, g_player.current_isFT, subscroll);  // Fall back
-            show_channel_info_btm(&g_player.finfos[g_player.printf_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &subscroll, g_player.current_isFT);
+            show_channel_info(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &scroll, g_player.current_isFT, subscroll);  // Fall back
+            show_channel_info_btm(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &subscroll, g_player.current_isFT);
         }
 
         hidScanInput();
@@ -193,7 +152,15 @@ int main(int argc, char *argv[]) {
         }
         */
 
-        if (kDown & KEY_SELECT) g_player.play_sound ^= 1;
+        if (kDown & KEY_SELECT) {
+            if (!g_player.play_sound) {
+                LightEvent_Signal(&g_player.resume_event);
+                LightEvent_Wait(&g_player.pause_event);
+            } else {
+                g_player.play_sound ^= 1;
+                LightEvent_Wait(&g_player.pause_event);
+            }
+        }
 
         if (kDown & KEY_DOWN) {  //|| (kHeld & KEY_DOWN && timer_cnt >= 50)) {
             isPrint = false;
@@ -213,29 +180,14 @@ int main(int argc, char *argv[]) {
 
         if (kDown & KEY_RIGHT) {
             if (kHeld & KEY_L) {
-                // Does it even have a subsong to play?
-                if (g_player.minfo.num_sequences >= 2) {
-                    if (g_player.minfo.num_sequences > g_player.subsong + 1) {
-                        g_player.play_sound = 0;
-                        while (!g_player.pause_flag) {
-                            svcSleepThread(20000);
-                        }
-                        if (g_player.minfo.num_sequences > g_player.subsong) g_player.subsong++;
-                        //xmp_stop_module(c);
-                        xmp_set_position(g_player.ctx, g_player.minfo.seq_data[g_player.subsong].entry_point);
-                        g_player.play_sound = 1;
-                    }
-                }
+                Player_NextSubSong(&g_player);
             } else {
-                g_player.play_sound = 0;
-                while (!g_player.pause_flag) {
-                    svcSleepThread(20000);
-                }
                 Player_ClearConsoles(&g_player);
                 gotoxy(0, 0);
+                Player_StopSong(&g_player);
                 if (Player_NextSong(&g_player) != 0) {
                     printf("Error on loadSong !!!?\n");
-                    goto exit;
+                    break;
                 };
                 //_debug_pause();
                 Player_ClearConsoles(&g_player);
@@ -244,36 +196,19 @@ int main(int argc, char *argv[]) {
                 scroll = 0;
                 g_player.subsong = 0;
                 isPrint = false;
-                g_player.play_sound = 1;
             }
         }
 
         if (kDown & KEY_LEFT) {
             if (kHeld & KEY_L) {
-                // Does it even have a subsong to play?
-                if (g_player.minfo.num_sequences >= 2) {
-                    if (g_player.subsong != 0) {
-                        g_player.play_sound = 0;
-                        while (!g_player.pause_flag) {
-                            svcSleepThread(20000);
-                        }
-                        //xmp_stop_module(c);
-                        if (g_player.subsong > 0) g_player.subsong--;
-                        xmp_set_position(g_player.ctx, g_player.minfo.seq_data[g_player.subsong].entry_point);
-                        g_player.play_sound = 1;
-                        //subsong++;
-                    }
-                }
+                Player_PrevSubSong(&g_player);
             } else {
-                g_player.play_sound = 0;
-                while (!g_player.pause_flag) {
-                    svcSleepThread(20000);
-                }
                 Player_ClearConsoles(&g_player);
                 gotoxy(0, 0);
+                Player_StopSong(&g_player);
                 if (Player_PrevSong(&g_player) != 0) {
                     printf("Error on loadSong !!!?\n");
-                    goto exit;
+                    break;
                 };
                 Player_ClearConsoles(&g_player);
                 g_player.render_time = g_player.screen_time = 0;
@@ -281,13 +216,12 @@ int main(int argc, char *argv[]) {
                 scroll = 0;
                 g_player.subsong = 0;
                 isPrint = false;
-                g_player.play_sound = 1;
             }
         }
         if (kDown & KEY_START) break;  // break in order to return to hbmenu
         g_player.screen_time = svcGetSystemTick() - first;
     }
-exit:
+
     Player_Exit(&g_player);
     return 0;
 }

@@ -15,11 +15,6 @@
 Result setup_ndsp();
 void soundThread(void *arg);
 
-struct thread_data {
-    xmp_context c;
-    int model;
-};
-
 static inline void _debug_pause() {
     printf("Press start.\n");
     while (1) {
