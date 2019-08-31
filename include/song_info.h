@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <xmp.h>
 
-void show_generic_info(struct xmp_frame_info *, struct xmp_module_info *, PrintConsole *, PrintConsole *, int, int);
+void show_generic_info(struct xmp_frame_info *, struct xmp_module_info *, PrintConsole *, PrintConsole *, int);
 void show_channel_info(struct xmp_frame_info *, struct xmp_module_info *, PrintConsole *, PrintConsole *, int *, int, int);
 void show_instrument_info(struct xmp_module_info *, PrintConsole *, PrintConsole *, int *, int);
 void show_sample_info(struct xmp_module_info *, PrintConsole *, PrintConsole *, int *);
