@@ -151,6 +151,8 @@ int Player_Init(Player* player) {
         return 5;
     }
 
+    memset(&player->waveBuf, 0, sizeof(player->waveBuf));
+
     for (int i = 0; i < 8; i++) {
         player->waveBuf[i].data_pcm16 = &player->audio_stream[player->block_size * i];
         player->waveBuf[i].status = NDSP_WBUF_DONE;
