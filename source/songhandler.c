@@ -67,7 +67,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     if (buffer_sz >= 0x100000)
         blocks = blocks * 2;
     if (buffer_sz >= 0x400000)
-        blocks = buffer_sz * 2;
+        blocks = blocks * 2;
     for (uint32_t i = 0; i < buffer_sz; i += blocks) {
         //COOL LOADING
         res = fread(buffer_ptr + i, 1, blocks, fp);
