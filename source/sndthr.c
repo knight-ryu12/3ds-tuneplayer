@@ -23,7 +23,7 @@ Result setup_ndsp() {
 
 static void _callback(void* data) {
     Player* player = (Player*)data;
-    if (player->run_sound && !player->play_sound && player->waveBuf[player->cur_wvbuf].status == NDSP_WBUF_DONE) {
+    if (player->run_sound && player->waveBuf[player->cur_wvbuf].status == NDSP_WBUF_DONE) {
         LightEvent_Signal(&player->ndspcallback_event);
     }
 }

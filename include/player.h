@@ -95,7 +95,7 @@ static inline void Player_NextSubSong(Player* player) {
     if (player->minfo.num_sequences < 2 || player->minfo.num_sequences <= player->subsong + 1) return;
     Player_StopSong(player);
     player->subsong++;
-    //xmp_stop_module(c);
+    //xmp_stop_module(player->ctx);
     xmp_set_position(player->ctx, player->minfo.seq_data[player->subsong].entry_point);
     player->play_sound = 1;
     player->run_sound = 1;
@@ -107,7 +107,7 @@ static inline void Player_PrevSubSong(Player* player) {
     if (player->minfo.num_sequences < 2 || player->subsong == 0) return;
     Player_StopSong(player);
     player->subsong--;
-    //xmp_stop_module(c);
+    //xmp_stop_module(player->ctx);
     xmp_set_position(player->ctx, player->minfo.seq_data[player->subsong].entry_point);
     player->play_sound = 1;
     player->run_sound = 1;

@@ -4,7 +4,7 @@
 #include <xmp.h>
 
 #define CHANNEL 0x10
-#define SAMPLE_RATE 44100
+#define SAMPLE_RATE 48000
 
 #define N3DS_BLOCK 4096
 #define O3DS_BLOCK 8192

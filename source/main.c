@@ -97,13 +97,13 @@ int main(int argc, char *argv[]) {
         } else if (info_flag == 3) {
             //Help.
             if (!isPrint) {
-                consoleSelect(&g_player.top);
+                Player_SelectTop(&g_player);
                 printhelp();
                 isPrint = true;
             }
         } else if (info_flag == 8) {
             if (!isPrint) {
-                //consoleSelect(&g_player.top);
+                //Player_SelectTop(&g_player);
                 //consoleClear(); // This'll stop garbage
                 show_playlist(&g_player.ll, g_player.current_song, &g_player.top, &g_player.bot, &scroll, &subscroll);
                 isPrint = true;
@@ -194,7 +194,6 @@ int main(int argc, char *argv[]) {
                 g_player.render_time = g_player.screen_time = 0;
                 first = svcGetSystemTick();
                 scroll = 0;
-                g_player.subsong = 0;
                 isPrint = false;
             }
         }
@@ -214,7 +213,6 @@ int main(int argc, char *argv[]) {
                 g_player.render_time = g_player.screen_time = 0;
                 first = svcGetSystemTick();
                 scroll = 0;
-                g_player.subsong = 0;
                 isPrint = false;
             }
         }
