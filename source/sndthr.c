@@ -66,18 +66,22 @@ void soundThread(void *arg) {
                 continue;
             }
 
-            wave = &player->waveBuf[add_masked(player->cur_wvbuf, 1)];
+            u32 cur = player->cur_wvbuf;
+
+            wave = &player->waveBuf[player->cur_wvbuf];
 
             DSP_FlushDataCache(wave->data_pcm16, player->block_size);
             ndspChnWaveBufAdd(CHANNEL, wave);
 
-            xmp_get_frame_info(player->ctx, &player->finfos[player->cur_wvbuf]);
+            player->cur_wvbuf = add_masked(player->cur_wvbuf, 1);
 
-            wave = &player->waveBuf[player->cur_wvbuf];
+            xmp_get_frame_info(player->ctx, &player->finfos[cur]);
+
+            wave = &player->waveBuf[cur];
             xmp_play_buffer(player->ctx, wave->data_pcm16, player->block_size, 0);
             wave->nsamples = player->block_size / 4; // Because of interleve
 
-            player->cur_wvbuf = add_masked(player->cur_wvbuf, 1);
+            
 
             player->render_time = svcGetSystemTick() - first;
         }
