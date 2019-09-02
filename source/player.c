@@ -140,8 +140,7 @@ int Player_Init(Player* player) {
         return 4;
     }
 
-    player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, dmodel ? 300 : 100);
-    player->block_size &= ~0x3;
+    player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, dmodel ? 100 : 50) & ~0x3;
 
     player->audio_stream = linearAlloc(player->block_size * 8);
     if (!player->audio_stream) {

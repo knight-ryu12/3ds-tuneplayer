@@ -10,7 +10,7 @@
 #define O3DS_BLOCK 8192
 // can someone find sweet spot?
 
-#define MS_TO_PCM16_SIZE(s, c, ms) ((u32)((s) / 1000.0f * (c) * (ms)))
+#define MS_TO_PCM16_SIZE(s, c, ms) ((u32)((s) * 2 * (c) * ((ms) / 1000.0f)))
 
 Result setup_ndsp();
 void soundThread(void *arg);
