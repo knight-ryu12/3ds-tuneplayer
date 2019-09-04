@@ -4,15 +4,16 @@
 #include <xmp.h>
 
 #define CHANNEL 0x10
-#define SAMPLE_RATE 32728
+#define SAMPLE_RATE 48000
+
+#define N3DS_BLOCK 4096
+#define O3DS_BLOCK 8192
+// can someone find sweet spot?
+
+#define MS_TO_PCM16_SIZE(s, c, ms) ((u32)((s) * 2 * (c) * ((ms) / 1000.0f)))
 
 Result setup_ndsp();
 void soundThread(void *arg);
-
-struct thread_data {
-    xmp_context c;
-    int model;
-};
 
 static inline void _debug_pause() {
     printf("Press start.\n");

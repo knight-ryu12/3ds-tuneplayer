@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <xmp.h>
 #include "fxhandler.h"
+#include "player.h"
 
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
@@ -19,12 +20,10 @@ static uint8_t old_fxt[256];
 static uint8_t old_fxp[256];
 static uint8_t old_f2t[256];
 static uint8_t old_f2p[256];
-extern volatile uint64_t render_time;
-extern volatile uint64_t screen_time;
-extern volatile uint32_t _PAUSE_FLAG;
+extern Player g_player;
 
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
-                       PrintConsole *top, PrintConsole *bot, int isN3DS, int cur_subsong) {
+                       PrintConsole *top, PrintConsole *bot, int cur_subsong) {
     const float SYS_TICK = CPU_TICKS_PER_MSEC;  // seems like 3ds uses this clock no matter what
     char timebuf[22];
     char infobuf[256];
@@ -37,8 +36,8 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
            fi->speed, fi->bpm, fi->loop_count, cur_subsong, fi->sequence, mi->num_sequences - 1,
            fi->virt_used, fi->virt_channels, timebuf);
     cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur), "%s\n%s\n", mi->mod->name, mi->mod->type);
-    cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur),"RT%0.2fms ST%0.2fms MT%0.2fms     \n", render_time / SYS_TICK, screen_time / SYS_TICK, (render_time + screen_time) / SYS_TICK);
-    cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur),"Status: %-8s\n", _PAUSE_FLAG ? "Paused" : "Playing");
+    cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur),"RT%0.2fms ST%0.2fms MT%0.2fms     \n", g_player.render_time / SYS_TICK, g_player.screen_time / SYS_TICK, (g_player.render_time + g_player.screen_time) / SYS_TICK);
+    cur += snprintf(&infobuf[cur],(256 - cur) < 0 ? 0 : (256 - cur),"Status: %-8s\n", !g_player.play_sound ? "Paused" : "Playing");
     write(STDOUT_FILENO, infobuf, cur > 256 ? 256 : cur);
 }
 
@@ -217,7 +216,7 @@ void show_sample_info(struct xmp_module_info *mi, PrintConsole *top,
     }
 }
 
-void show_channel_intrument_info(struct xmp_frame_info *fi,
+void show_channel_instrument_info(struct xmp_frame_info *fi,
                                  struct xmp_module_info *mi, PrintConsole *top,
                                  PrintConsole *bot, int *s) {
     consoleSelect(bot);
