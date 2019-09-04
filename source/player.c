@@ -103,6 +103,11 @@ int Player_Init(Player* player) {
     LightEvent_Init(&player->resume_event, RESET_ONESHOT);
     LightEvent_Init(&player->pause_event, RESET_ONESHOT);
     //LightEvent_Init(&player->ndspcallback_event, RESET_ONESHOT);
+    player->render_time = 0LLU;
+    player->screen_time = 0LLU;
+    player->run_sound = 0;
+    player->play_sound = 0;
+    player->terminate_flag = 0;
 
     player->ll = create_list();
 
@@ -162,8 +167,6 @@ int Player_Init(Player* player) {
 
     //player->cur_wvbuf = 0;
 
-    player->terminate_flag = 0;
-
     if (Player_NextSong(player) != 0) {
         free_list(&player->ll);
         xmp_free_context(player->ctx);
@@ -187,9 +190,6 @@ int Player_Init(Player* player) {
         return 7;
     };
 
-    player->render_time = 0LLU;
-    player->screen_time = 0LLU;
-
     return 0;
 }
 
@@ -205,7 +205,6 @@ void Player_Exit(Player* player) {
     if(player->ctx) xmp_stop_module(player->ctx);
     //_debug_pause();
     aptUnhook(&player->apthook);
-    player->run_sound = 0;
     if(player->ctx) {
         xmp_end_player(player->ctx);
         if(!player->context_released)

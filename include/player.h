@@ -66,6 +66,7 @@ static inline void Player_ClearConsoles(Player* player) {
 }
 
 static inline void Player_StopSong(Player* player) {
+    if(!player->run_sound) return;
     player->play_sound = 0;
     LightEvent_Wait(&player->pause_event);
     player->run_sound = 0;
@@ -75,6 +76,7 @@ static inline void Player_StopSong(Player* player) {
 }
 
 static inline int Player_NextSong(Player* player) {
+    Player_StopSong(player);
     int ret = load_song(player->ctx, &player->minfo, &player->ll, &player->current_song, &player->current_isFT, &player->context_released, true);
     if (!ret) {
         player->play_sound = 1;
@@ -86,6 +88,7 @@ static inline int Player_NextSong(Player* player) {
 }
 
 static inline int Player_PrevSong(Player* player) {
+    Player_StopSong(player);
     int ret = load_song(player->ctx, &player->minfo, &player->ll, &player->current_song, &player->current_isFT, &player->context_released, false);
     if (!ret) {
         player->play_sound = 1;

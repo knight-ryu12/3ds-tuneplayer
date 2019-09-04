@@ -63,7 +63,6 @@ int main(int argc, char *argv[]) {
         if (fi.loop_count > 0) {
             Player_ClearConsoles(&g_player);
             gotoxy(0, 0);
-            Player_StopSong(&g_player);
             if (Player_NextSong(&g_player) != 0) {
             // This should not happen.
                 printf("Error on loadSong !!!?\n");
@@ -174,7 +173,6 @@ int main(int argc, char *argv[]) {
             } else {
                 Player_ClearConsoles(&g_player);
                 gotoxy(0, 0);
-                Player_StopSong(&g_player);
                 if (Player_NextSong(&g_player) != 0) {
                     printf("Error on loadSong !!!?\n");
                     break;
@@ -194,7 +192,6 @@ int main(int argc, char *argv[]) {
             } else {
                 Player_ClearConsoles(&g_player);
                 gotoxy(0, 0);
-                Player_StopSong(&g_player);
                 if (Player_PrevSong(&g_player) != 0) {
                     printf("Error on loadSong !!!?\n");
                     break;
