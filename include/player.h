@@ -66,9 +66,14 @@ static inline void Player_ClearConsoles(Player* player) {
 }
 
 static inline void Player_StopSong(Player* player) {
+    // already stopped
     if(!player->run_sound) return;
-    player->play_sound = 0;
-    LightEvent_Wait(&player->pause_event);
+    // otherwise, pause if not yet
+    // doing this in an already paused state will freeze, so check that
+    if(player->play_sound) {
+        player->play_sound = 0;
+        LightEvent_Wait(&player->pause_event);
+    }
     player->run_sound = 0;
     LightEvent_Signal(&player->resume_event);
     LightEvent_Wait(&player->pause_event);
