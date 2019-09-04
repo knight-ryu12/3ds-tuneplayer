@@ -6,9 +6,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <xmp.h>
-#include "fastmode.h"
-#include "linkedlist.h"
-#include "sndthr.h"
 #include "song_info.h"
 #include "songhandler.h"
 #include "songview.h"
@@ -49,7 +46,7 @@ int main(int argc, char *argv[]) {
 
     int scroll = 0;
     int subscroll = 0;
-    u64 timer_cnt = 0;
+    //u64 timer_cnt = 0;
     // Main loop
     u64 first = 0;
     bool isPrint = false;
@@ -81,17 +78,17 @@ int main(int argc, char *argv[]) {
         }
 #endif
 
-        show_generic_info(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, g_player.subsong);
+        Player_PrintGeneric(&g_player);
         /// 000 shows default info.
         if (info_flag == 1) {
             if (!isPrint) {
-                show_instrument_info(&g_player.minfo, &g_player.top, &g_player.bot, &scroll, subscroll);
+                Player_PrintInstruments(&g_player, &scroll, subscroll);
                 isPrint = true;
             }
-            show_channel_intrument_info(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &subscroll);
+            Player_PrintChannelInstruments(&g_player, &subscroll);
         } else if (info_flag == 2) {
             if (!isPrint) {
-                show_sample_info(&g_player.minfo, &g_player.top, &g_player.bot, &scroll);
+                Player_PrintSamples(&g_player, &scroll);
                 isPrint = true;
             }
         } else if (info_flag == 3) {
@@ -105,13 +102,12 @@ int main(int argc, char *argv[]) {
             if (!isPrint) {
                 //Player_SelectTop(&g_player);
                 //consoleClear(); // This'll stop garbage
-                show_playlist(&g_player.ll, g_player.current_song, &g_player.top, &g_player.bot, &scroll, &subscroll);
+                Player_PrintPlaylist(&g_player, &scroll, &subscroll);
                 isPrint = true;
             }
 
         } else {
-            show_channel_info(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &scroll, g_player.current_isFT, subscroll);  // Fall back
-            show_channel_info_btm(&g_player.finfos[g_player.cur_wvbuf], &g_player.minfo, &g_player.top, &g_player.bot, &subscroll, g_player.current_isFT);
+            Player_PrintChannel(&g_player, &scroll, &subscroll);
         }
 
         hidScanInput();
@@ -153,13 +149,7 @@ int main(int argc, char *argv[]) {
         */
 
         if (kDown & KEY_SELECT) {
-            if (!g_player.play_sound) {
-                LightEvent_Signal(&g_player.resume_event);
-                LightEvent_Wait(&g_player.pause_event);
-            } else {
-                g_player.play_sound ^= 1;
-                LightEvent_Wait(&g_player.pause_event);
-            }
+            Player_TogglePause(&g_player);
         }
 
         if (kDown & KEY_DOWN) {  //|| (kHeld & KEY_DOWN && timer_cnt >= 50)) {

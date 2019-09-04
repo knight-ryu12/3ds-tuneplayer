@@ -21,6 +21,7 @@ Result setup_ndsp() {
     return 0;
 }
 
+/*
 static void _callback(void* data) {
     Player* player = (Player*)data;
     if (player->run_sound && player->waveBuf[player->cur_wvbuf].status == NDSP_WBUF_DONE) {
@@ -87,6 +88,54 @@ void soundThread(void *arg) {
         }
         ndspSetCallback(NULL, NULL);
         LightEvent_Clear(&player->ndspcallback_event);
+    }
+    ndspChnWaveBufClear(CHANNEL);
+    threadExit(0);
+}
+*/
+
+void soundThread(void *arg) {
+    Player* player = (Player*)arg;
+    u32 BLOCK = player->block_size;
+
+    int cur_wvbuf = 0;
+    ndspWaveBuf *waveBuf = player->waveBuf;
+
+    u64 first = 0;
+    //uint64_t second = 0;
+    while (!player->terminate_flag) {
+        LightEvent_Signal(&player->playwaiting_event);
+        LightEvent_Wait(&player->playready_event);
+        if (player->terminate_flag) break;
+
+        while (player->run_sound) {
+            first = svcGetSystemTick();
+
+            if (!player->play_sound) {
+                player->render_time = 0;
+                LightEvent_Signal(&player->pause_event);
+                LightEvent_Wait(&player->resume_event);
+                // is sleep quit by runSound being off?
+                player->play_sound = 1;
+                LightEvent_Signal(&player->pause_event);
+                if (!player->run_sound || player->terminate_flag) break;
+            }
+
+            xmp_get_frame_info(player->ctx, &player->finfo);
+
+            s16 *sbuf = waveBuf[cur_wvbuf].data_pcm16;
+            xmp_play_buffer(player->ctx, sbuf, BLOCK, 0);
+            waveBuf[cur_wvbuf].nsamples = BLOCK / 4;
+
+            DSP_FlushDataCache(sbuf, BLOCK);
+            ndspChnWaveBufAdd(CHANNEL, &waveBuf[cur_wvbuf]);
+            cur_wvbuf ^= 1;
+
+            player->render_time = svcGetSystemTick() - first;
+            while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && player->run_sound)
+                //svcSleepThread(10e9 / (BLOCK / 2));
+                svcSleepThread(100000000 / (BLOCK / 2));
+        }
     }
     ndspChnWaveBufClear(CHANNEL);
     threadExit(0);

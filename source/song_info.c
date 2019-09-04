@@ -216,7 +216,7 @@ void show_sample_info(struct xmp_module_info *mi, PrintConsole *top,
     }
 }
 
-void show_channel_intrument_info(struct xmp_frame_info *fi,
+void show_channel_instrument_info(struct xmp_frame_info *fi,
                                  struct xmp_module_info *mi, PrintConsole *top,
                                  PrintConsole *bot, int *s) {
     consoleSelect(bot);

@@ -89,6 +89,7 @@ int Player_InitThread(Player* player, int model) {
     player->sound_thread = threadCreate(soundThread, player, 32768, main_prio + 1,
                            model ? 2 : 0, true);
     if (!player->sound_thread) return 1;
+    LightEvent_Wait(&player->playwaiting_event);
     return 0;
 }
 
@@ -97,10 +98,11 @@ int Player_Init(Player* player) {
     if (Player_InitServices()) return 1;
     aptHook(&player->apthook, Player_AptHook, (void*)player);
 
+    LightEvent_Init(&player->playwaiting_event, RESET_ONESHOT);
     LightEvent_Init(&player->playready_event, RESET_ONESHOT);
     LightEvent_Init(&player->resume_event, RESET_ONESHOT);
     LightEvent_Init(&player->pause_event, RESET_ONESHOT);
-    LightEvent_Init(&player->ndspcallback_event, RESET_ONESHOT);
+    //LightEvent_Init(&player->ndspcallback_event, RESET_ONESHOT);
 
     player->ll = create_list();
 
@@ -121,7 +123,7 @@ int Player_Init(Player* player) {
     player->current_song = NULL;
     player->subsong = 0;
 
-    memset(&player->finfos, 0, sizeof(player->finfos));
+    //memset(&player->finfos, 0, sizeof(player->finfos));
 
     player->ctx = xmp_create_context();
     if (!player->ctx) {
@@ -140,9 +142,10 @@ int Player_Init(Player* player) {
         return 4;
     }
 
-    player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, dmodel ? 100 : 50) & ~0x3;
+    //player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, dmodel ? 50 : 100) & ~0x3;
+    player->block_size = dmodel ? N3DS_BLOCK : O3DS_BLOCK;
 
-    player->audio_stream = linearAlloc(player->block_size * 8);
+    player->audio_stream = linearAlloc(player->block_size * sizeof(s16) * 2);
     if (!player->audio_stream) {
         free_list(&player->ll);
         xmp_free_context(player->ctx);
@@ -152,12 +155,12 @@ int Player_Init(Player* player) {
 
     memset(&player->waveBuf, 0, sizeof(player->waveBuf));
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 2; i++) {
         player->waveBuf[i].data_pcm16 = &player->audio_stream[player->block_size * i];
         player->waveBuf[i].status = NDSP_WBUF_DONE;
     }
 
-    player->cur_wvbuf = 0;
+    //player->cur_wvbuf = 0;
 
     player->terminate_flag = 0;
 
@@ -171,7 +174,8 @@ int Player_Init(Player* player) {
     };
 
     Player_ClearConsoles(player);
-    xmp_get_frame_info(player->ctx, &player->finfos[0]);
+    //xmp_get_frame_info(player->ctx, &player->finfos[0]);
+    xmp_get_frame_info(player->ctx, &player->finfo);
     Player_SelectBottom(player);
 
     if (Player_InitThread(player, model) != 0) {
@@ -196,7 +200,7 @@ void Player_Exit(Player* player) {
     LightEvent_Signal(&player->playready_event);
     LightEvent_Signal(&player->resume_event);
     LightEvent_Signal(&player->pause_event);
-    LightEvent_Signal(&player->ndspcallback_event);
+    //LightEvent_Signal(&player->ndspcallback_event);
     threadJoin(player->sound_thread, U64_MAX);
     if(player->ctx) xmp_stop_module(player->ctx);
     //_debug_pause();

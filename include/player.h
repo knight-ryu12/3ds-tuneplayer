@@ -6,16 +6,19 @@
 #include <xmp.h>
 #include "fastmode.h"
 #include "linkedlist.h"
-#include "songhandler.h"
 #include "error.h"
 #include "sndthr.h"
+#include "song_info.h"
+#include "songhandler.h"
+#include "songview.h"
 
 void Player_AptHook(APT_HookType hook, void *param);
 
 typedef struct {
     PrintConsole top, bot;
     struct xmp_module_info minfo;
-    struct xmp_frame_info finfos[8];
+    //struct xmp_frame_info finfos[8];
+    struct xmp_frame_info finfo;
     xmp_context ctx;
     bool context_released;
     LinkedList ll;
@@ -24,19 +27,21 @@ typedef struct {
     int current_isFT;
     aptHookCookie apthook;
     Thread sound_thread;
-    ndspWaveBuf waveBuf[8];
-    volatile u32 cur_wvbuf;
+    //ndspWaveBuf waveBuf[8];
+    ndspWaveBuf waveBuf[2];
+    //vu32 cur_wvbuf;
     s16* audio_stream;
     u32 block_size;
+    LightEvent playwaiting_event;
     LightEvent playready_event;
     LightEvent resume_event;
     LightEvent pause_event;
-    LightEvent ndspcallback_event;
-    volatile u64 render_time;
-    volatile u64 screen_time;
-    volatile u8 run_sound;
-    volatile u8 play_sound;
-    volatile u8 terminate_flag;
+    //LightEvent ndspcallback_event;
+    vu64 render_time;
+    vu64 screen_time;
+    vu8 run_sound;
+    vu8 play_sound;
+    vu8 terminate_flag;
 } Player;
 
 void Player_InitConsoles(Player* player);
@@ -66,6 +71,7 @@ static inline void Player_StopSong(Player* player) {
     player->run_sound = 0;
     LightEvent_Signal(&player->resume_event);
     LightEvent_Wait(&player->pause_event);
+    LightEvent_Wait(&player->playwaiting_event);
 }
 
 static inline int Player_NextSong(Player* player) {
@@ -112,4 +118,39 @@ static inline void Player_PrevSubSong(Player* player) {
     player->play_sound = 1;
     player->run_sound = 1;
     LightEvent_Signal(&player->playready_event);
+}
+
+static inline void Player_TogglePause(Player* player) {
+    if (!player->play_sound) {
+        LightEvent_Signal(&player->resume_event);
+        LightEvent_Wait(&player->pause_event);
+    } else {
+        player->play_sound ^= 1;
+        LightEvent_Wait(&player->pause_event);
+    }
+}
+
+static inline void Player_PrintGeneric(Player* player) {
+    show_generic_info(&player->finfo, &player->minfo, &player->top, &player->bot, player->subsong);
+}
+
+static inline void Player_PrintInstruments(Player* player, int* scroll, int subscroll) {
+    show_instrument_info(&player->minfo, &player->top, &player->bot, scroll, subscroll);
+}
+
+static inline void Player_PrintChannelInstruments(Player* player, int* subscroll) {
+    show_channel_instrument_info(&player->finfo, &player->minfo, &player->top, &player->bot, subscroll);
+}
+
+static inline void Player_PrintSamples(Player* player, int* scroll) {
+    show_sample_info(&player->minfo, &player->top, &player->bot, scroll);
+}
+
+static inline void Player_PrintPlaylist(Player* player, int* scroll, int* subscroll) {
+    show_playlist(&player->ll, player->current_song, &player->top, &player->bot, scroll, subscroll);
+}
+
+static inline void Player_PrintChannel(Player* player, int* scroll, int* subscroll) {
+    show_channel_info(&player->finfo, &player->minfo, &player->top, &player->bot, scroll, player->current_isFT, *subscroll);  // Fall back
+    show_channel_info_btm(&player->finfo, &player->minfo, &player->top, &player->bot, subscroll, player->current_isFT);
 }
