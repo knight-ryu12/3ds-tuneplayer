@@ -40,16 +40,16 @@ void printhelp() {
 }
 
 int main(int argc, char *argv[]) {
-    u8 info_flag = 0b00000000;
+    uint8_t info_flag = 0b00000000;
 
     if (Player_Init(&g_player))
         return 0;
 
     int scroll = 0;
     int subscroll = 0;
-    //u64 timer_cnt = 0;
+    //uint64_t timer_cnt = 0;
     // Main loop
-    u64 first = 0;
+    uint64_t first = 0;
     bool isPrint = false;
 
     while (aptMainLoop()) {
@@ -113,8 +113,8 @@ int main(int argc, char *argv[]) {
         hidScanInput();
 
         // Your code goes here
-        u32 kDown = hidKeysDown();
-        u32 kHeld = hidKeysHeld();
+        uint32_t kDown = hidKeysDown();
+        uint32_t kHeld = hidKeysHeld();
 
         if (kDown & KEY_R) {
             Player_ClearConsoles(&g_player);

@@ -14,7 +14,7 @@ static inline int get_debug_testing_model() {
     int model = -1;
 #ifdef DEBUG
     hidScanInput();
-    u32 h = hidKeysHeld();
+    uint32_t h = hidKeysHeld();
     if (h & KEY_R) {
         model = 0;
         printf("Model force 0.\n");
@@ -113,7 +113,7 @@ int Player_CheckConfig() {
         and if you're done with the archive itself, FSUSER_CloseArchive with the saved FS_Archive
     */
     PlayerConfiguration default_pc = {1, 0};
-    u64 fsa = 0x4152435A00000001LLU;
+    uint64_t fsa = 0x4152435A00000001LLU;
     Result r;
     Extdata_Path extdata = {.type = MEDIATYPE_SD, .extdataId = fsa};
     FS_Path path = {
@@ -179,7 +179,7 @@ retry:
 }
 
 int Player_InitThread(Player* player, int model) {
-    s32 main_prio;
+    int32_t main_prio;
     Result res = svcGetThreadPriority(&main_prio, CUR_THREAD_HANDLE);
     if (R_FAILED(res)) return 1;
     player->sound_thread = threadCreate(soundThread, player, 32768, main_prio + 1,
@@ -208,7 +208,7 @@ int Player_Init(Player* player) {
 
     player->ll = create_list();
 
-    u32 song_num = 0;
+    uint32_t song_num = 0;
 
     song_num += searchsong(default_search_path[0], &player->ll);  //Atleast, leave this one alone.
     song_num += searchsong(default_search_path[1], &player->ll);
@@ -247,7 +247,7 @@ int Player_Init(Player* player) {
     //player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, dmodel ? 50 : 100) & ~0x3;
     player->block_size = dmodel ? N3DS_BLOCK : O3DS_BLOCK;
 
-    player->audio_stream = linearAlloc(player->block_size * sizeof(s16) * 2);
+    player->audio_stream = linearAlloc(player->block_size * sizeof(int16_t) * 2);
     if (!player->audio_stream) {
         free_list(&player->ll);
         xmp_free_context(player->ctx);
