@@ -3,16 +3,12 @@
 #include <unistd.h>
 #include <wchar.h>
 #include "sndthr.h"
+#include "fshelper.h"
 
 typedef struct PlayerConfiguration {
     uint8_t version;
     int loopcheck;
 } PlayerConfiguration;
-
-typedef struct __attribute__((packed, aligned(4))) {
-    u32 type;
-    u64 extdataId;
-} Extdata_Path;
 
 static inline int get_debug_testing_model() {
     int model = -1;
@@ -117,7 +113,7 @@ int Player_CheckConfig() {
         and if you're done with the archive itself, FSUSER_CloseArchive with the saved FS_Archive
     */
     PlayerConfiguration default_pc = {1, 0};
-    uint64_t fsa = 0x4152435A00000001LLU;
+    u64 fsa = 0x4152435A00000001LLU;
     Result r;
     Extdata_Path extdata = {.type = MEDIATYPE_SD, .extdataId = fsa};
     FS_Path path = {
@@ -125,36 +121,40 @@ int Player_CheckConfig() {
         sizeof(extdata),
         &extdata};
     FS_Archive extarc;
-    FS_ExtSaveDataInfo esdi = {.mediaType = MEDIATYPE_SD, .saveId = fsa};
     const char* configpath = "/config.bin";
     FS_Path filepath = {PATH_ASCII, strlen(configpath) + 1, configpath};
     Handle hndl;
+    bool attempt = true;
 retry:
     r = FSUSER_OpenArchive(&extarc, ARCHIVE_EXTDATA, path);
     printf("FSUSER_OA %08lx\n", r);
-    if (r == 0xc8a04478) {
+    if (R_FAILED(r) && attempt) {
         //Not found, creating
         printf("Creating extdata...");
-        r = FSUSER_CreateExtSaveData(esdi, 1, 2, 131072, 0, NULL);
+        r = FSHelp_FormatExtdata(fsa, MEDIATYPE_SD, 1, 2, 131072, 0, NULL);
         if (r == 0) {
             printf("Done [%08lx]\n", r);
+            attempt = false;
             goto retry;
         } else {
             printf("Failed [%08lx]\n", r);
             _debug_pause();
             return 1;
         }
-    } else {
-    file_retry:
+    } else if (!R_FAILED(r)) {
+        hndl = 0;
+        attempt = true;
+        file_retry:
         //Parse
         r = FSUSER_OpenFile(&hndl, extarc, filepath, FS_OPEN_READ | FS_OPEN_WRITE, 0);
         printf("FSUSER_OF %08lx\n", r);
-        if (r == 0xc8804470) {
+        if (r == 0xc8804470 && attempt) {
             // File not found
+            attempt = false;
             r = FSUSER_CreateFile(extarc, filepath, 0, 128);
             printf("FSUSER_CF %08lx\n", r);
-            goto file_retry;
-        } else {
+            if (!R_FAILED(r)) goto file_retry;
+        } else if (!R_FAILED(r)) {
             //File exists, check for version
             uint32_t readsz;
             PlayerConfiguration pc = {};
@@ -171,6 +171,8 @@ retry:
                 printf("FSFILE_W %08lx, %ld\n", r, writesz);
             }
         }
+        if (hndl) FSFILE_Close(hndl);
+        FSUSER_CloseArchive(extarc);
     }
     _debug_pause();
     return 0;
