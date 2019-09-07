@@ -6,13 +6,14 @@
 #include <string.h>
 #include <unistd.h>
 #include <xmp.h>
+#include "player.h"
 #include "song_info.h"
 #include "songhandler.h"
 #include "songview.h"
-#include "player.h"
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
-#define DISABLE_LOOPCHK // Soon I'll enable this.
+#define DISABLE_LOOPCHK  // Soon I'll enable this.
 
+#define EXTDATA_ID 0xffff0010
 // 3ds-tuneplayer backed by libxmp (CMatsuoka, thx), by Chromaryu
 // "80's praise on 2012 hardware" - Chromaryu
 
@@ -41,7 +42,7 @@ void printhelp() {
 int main(int argc, char *argv[]) {
     u8 info_flag = 0b00000000;
 
-    if(Player_Init(&g_player))
+    if (Player_Init(&g_player))
         return 0;
 
     int scroll = 0;
@@ -64,7 +65,7 @@ int main(int argc, char *argv[]) {
             Player_ClearConsoles(&g_player);
             gotoxy(0, 0);
             if (Player_NextSong(&g_player) != 0) {
-            // This should not happen.
+                // This should not happen.
                 printf("Error on loadSong !!!?\n");
                 sendError("Error on loadsong...?\n", 0xFFFF0003);
                 break;
