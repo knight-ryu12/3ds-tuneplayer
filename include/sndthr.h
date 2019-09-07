@@ -10,7 +10,7 @@
 #define O3DS_BLOCK 8192
 // can someone find sweet spot?
 
-#define MS_TO_PCM16_SIZE(s, c, ms) ((u32)((s) * 2 * (c) * ((ms) / 1000.0f)))
+#define MS_TO_PCM16_SIZE(s, c, ms) ((uint32_t)((s) * 2 * (c) * ((ms) / 1000.0f)))
 
 Result setup_ndsp();
 void soundThread(void *arg);
@@ -19,7 +19,7 @@ static inline void _debug_pause() {
     printf("Press start.\n");
     while (1) {
         hidScanInput();
-        u32 kDown = hidKeysDown();
+        uint32_t kDown = hidKeysDown();
         if (kDown & KEY_START) break;
     }
 }
