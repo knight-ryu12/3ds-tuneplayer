@@ -1,8 +1,8 @@
+#include "fshelper.h"
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
-#include "fshelper.h"
 
 extern int __system_argc;
 extern char** __system_argv;
@@ -10,7 +10,8 @@ extern char** __system_argv;
 // taken part from ctrulib's "romfs_dev.c"
 // needed since i needed to access smdh data
 // and i don't think lib provides way for that..
-#define _3DSX_MAGIC 0x58534433 // '3DSX'
+#define _3DSX_MAGIC 0x58534433  // '3DSX'
+#define _SMDH_MAGIC 0x48444d53  // 'SMDH'
 typedef struct
 {
     uint32_t magic;
@@ -27,12 +28,46 @@ typedef struct
     uint32_t fsOffset;
 } _3DSX_Header;
 
+typedef struct {
+    // Each one is UTF-16 encoded.
+    uint8_t shortDesc[0x80];
+    uint8_t longDesc[0x100];
+    uint8_t Publisher[0x80];
+} _APPT_Header;
+
+typedef struct
+{
+    // Applicaiton settings
+    uint8_t ageRating[0x10];
+    uint32_t regLockout;
+    uint8_t mmID[0xC];  //M(atch)M(aker)ID
+    uint32_t flag;
+    uint16_t vEula;
+    uint16_t reserved;
+    uint32_t OADF;   // Optimal Animation Default Frame ???
+    uint32_t CECID;  // Street pass ID
+} _APPS_Header;
+
+typedef struct {
+    uint8_t small[0x480];  // these encoding is word-order crap.
+    uint8_t large[0x1200];
+} _ICON_Header;
+
+typedef struct {
+    uint32_t magic;
+    uint16_t version, reserved1;
+    _APPT_Header titles[16];  // 0x200 bytes long
+    _APPS_Header applicationSetting;
+    uint64_t reserved2;
+    _ICON_Header iconGraphic;
+} _SMDH_Header;
+
 static uint8_t* smdh_data = NULL;
 static uint32_t smdh_size = 0;
-static LightLock lock = {1}; // it's global, so i'm just pre-initializing it 
+static LightLock lock = {1};  // it's global, so i'm just pre-initializing it
 
-static char _3dsxpath[PATH_MAX+1] = {0};
-static uint16_t u16_3dsxpath[PATH_MAX+1] = {0};
+static char _3dsxpath[PATH_MAX + 1] = {0};
+static uint16_t u16_3dsxpath[PATH_MAX + 1] = {0};
 
 // also based around romfsMount, but SMDH
 static bool GetSMDH() {
@@ -92,7 +127,7 @@ static bool GetSMDH() {
         filename += 5;
     else if (!strncmp(filename, "3dslink:/", 9)) {
         strcpy(_3dsxpath, "/3ds");
-        strncat(_3dsxpath, filename+8, PATH_MAX);
+        strncat(_3dsxpath, filename + 8, PATH_MAX);
         filename = _3dsxpath;
     } else {
         LightLock_Unlock(&lock);
@@ -109,7 +144,7 @@ static bool GetSMDH() {
     // should at a point try to also try to find .smdh if .3dsx doesn't have it, for some reason
     // it should however exist, unless we are using older toolsets
 
-    FS_Path filePath = {PATH_UTF16, (units+1)*2, u16_3dsxpath};
+    FS_Path filePath = {PATH_UTF16, (units + 1) * 2, u16_3dsxpath};
 
     ret = FSUSER_OpenFileDirectly(&fileHandle, ARCHIVE_SDMC, archPath, filePath, FS_OPEN_READ, 0);
     if (R_FAILED(ret)) {
@@ -138,7 +173,7 @@ static bool GetSMDH() {
     return true;
 }
 
-Result FSHelp_FormatExtdata(uint64_t id, FS_MediaType media, uint32_t directories, uint32_t files, uint64_t sizeLimit, uint32_t smdhSize, uint8_t *smdh) {
+Result FSHelp_FormatExtdata(uint64_t id, FS_MediaType media, uint32_t directories, uint32_t files, uint64_t sizeLimit, uint32_t smdhSize, uint8_t* smdh) {
     if ((!smdhSize || !smdh) && !GetSMDH())
         return MAKERESULT(RL_FATAL, RS_NOTFOUND, RM_APPLICATION, RD_NOT_FOUND);
     FS_ExtSaveDataInfo esdi;
