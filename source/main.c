@@ -60,23 +60,23 @@ int main(int argc, char *argv[]) {
         gfxSwapBuffers();
         first = svcGetSystemTick();
         // Check loop cnt
-#ifndef DISABLE_LOOPCHK
-        if (fi.loop_count > 0) {
-            Player_ClearConsoles(&g_player);
-            gotoxy(0, 0);
-            if (Player_NextSong(&g_player) != 0) {
-                // This should not happen.
-                printf("Error on loadSong !!!?\n");
-                sendError("Error on loadsong...?\n", 0xFFFF0003);
-                break;
+        if (g_player.playerConfig.loopcheck >= 0) {
+            if (g_player.finfo.loop_count > g_player.playerConfig.loopcheck) {
+                Player_ClearConsoles(&g_player);
+                gotoxy(0, 0);
+                if (Player_NextSong(&g_player) != 0) {
+                    // This should not happen.
+                    printf("Error on loadSong !!!?\n");
+                    sendError("Error on loadsong...?\n", 0xFFFF0003);
+                    break;
+                }
+                //_debug_pause();
+                Player_ClearConsoles(&g_player);
+                g_player.render_time = g_player.screen_time = 0;
+                first = svcGetSystemTick();
+                scroll = 0;
             }
-            //_debug_pause();
-            Player_ClearConsoles(&g_player);
-            g_player.render_time = g_player.screen_time = 0;
-            first = svcGetSystemTick();
-            scroll = 0;
         }
-#endif
 
         Player_PrintGeneric(&g_player);
         /// 000 shows default info.
@@ -105,7 +105,11 @@ int main(int argc, char *argv[]) {
                 Player_PrintPlaylist(&g_player, &scroll, &subscroll);
                 isPrint = true;
             }
-
+        } else if (info_flag == 16) {
+            // Special.
+            if (!isPrint) {
+                isPrint = true;
+            }
         } else {
             Player_PrintChannel(&g_player, &scroll, &subscroll);
         }
@@ -141,12 +145,12 @@ int main(int argc, char *argv[]) {
             isPrint = false;
             info_flag = 0b001;
         }
+        */
         if (kDown & KEY_Y) {
             Player_ClearConsoles(&g_player);
             isPrint = false;
-            info_flag = 0b010;
+            info_flag = 16;
         }
-        */
 
         if (kDown & KEY_SELECT) {
             Player_TogglePause(&g_player);

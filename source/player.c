@@ -2,13 +2,11 @@
 #include <3ds.h>
 #include <unistd.h>
 #include <wchar.h>
-#include "sndthr.h"
 #include "fshelper.h"
+#include "sndthr.h"
 
-typedef struct PlayerConfiguration {
-    uint8_t version;
-    int loopcheck;
-} PlayerConfiguration;
+#define CONFIG_VERSION 3
+#define FSA_PATH 0x4152435A00000001LLU
 
 static inline int get_debug_testing_model() {
     int model = -1;
@@ -97,7 +95,7 @@ int Player_InitServices() {
     return 0;
 }
 
-int Player_CheckConfig() {
+int Player_CheckConfig(PlayerConfiguration* config) {
     // And parsing.
     /*
         basically
@@ -112,8 +110,8 @@ int Player_CheckConfig() {
         FSFILE_Close() that Handle when you're done
         and if you're done with the archive itself, FSUSER_CloseArchive with the saved FS_Archive
     */
-    PlayerConfiguration default_pc = {1, 0};
-    uint64_t fsa = 0x4152435A00000001LLU;
+    PlayerConfiguration default_pc = {CONFIG_VERSION, 0, -1, 0};
+    uint64_t fsa = FSA_PATH;
     Result r;
     Extdata_Path extdata = {.type = MEDIATYPE_SD, .extdataId = fsa};
     FS_Path path = {
@@ -144,7 +142,7 @@ retry:
     } else if (!R_FAILED(r)) {
         hndl = 0;
         attempt = true;
-        file_retry:
+    file_retry:
         //Parse
         r = FSUSER_OpenFile(&hndl, extarc, filepath, FS_OPEN_READ | FS_OPEN_WRITE, 0);
         printf("FSUSER_OF %08lx\n", r);
@@ -161,7 +159,8 @@ retry:
             r = FSFILE_Read(hndl, &readsz, 0, &pc, sizeof(PlayerConfiguration));
             printf("FSFILE_R %08lx, %ld\n", r, readsz);
             printf("Version %d\n", pc.version);
-            if (pc.version < 1) {
+            printf("Debug %d\n", pc.debugmode);
+            if (pc.version < CONFIG_VERSION) {
                 //write new config, while preserving config contents;
                 printf("Outdated/New creation, updating...");
                 default_pc.loopcheck = pc.loopcheck;
@@ -178,6 +177,42 @@ retry:
     return 0;
 }
 
+int Player_WriteConfig(PlayerConfiguration pc) {
+    uint64_t fsa = FSA_PATH;
+    Result r;
+    Extdata_Path extdata = {.type = MEDIATYPE_SD, .extdataId = fsa};
+    FS_Path path = {
+        PATH_BINARY,
+        sizeof(extdata),
+        &extdata};
+    FS_Archive extarc;
+    const char* configpath = "/config.bin";
+    FS_Path filepath = {PATH_ASCII, strlen(configpath) + 1, configpath};
+    Handle hndl;
+    bool attempt = true;
+    //first, trying to open Archive to popilate extarc from path
+    r = FSUSER_OpenArchive(&extarc, ARCHIVE_EXTDATA, path);
+    printf("FSUSER_OA %08lx\n", r);
+    if (R_FAILED(r)) return 1;
+    r = FSUSER_OpenFile(&hndl, extarc, filepath, FS_OPEN_READ | FS_OPEN_WRITE, 0);
+    printf("FSUSER_OF %08lx\n", r);
+    if (R_FAILED(r)) return 2;
+    uint32_t writesz;
+    r = FSFILE_Write(hndl, &writesz, 0, &pc, sizeof(PlayerConfiguration), 0);
+    printf("FSFILE_W %08lx\n", r);
+    if (R_FAILED(r)) return 3;
+    return 0;
+}
+
+void Player_ConfigsScreen(Player* player, int* subscroll) {
+    int configuable = 3;
+    printf("Config Screen\n");
+    printf("Config version: %d\n", player->playerConfig.version);
+
+    //Scroll range 3
+    //TODO: please fix
+}
+
 int Player_InitThread(Player* player, int model) {
     int32_t main_prio;
     Result res = svcGetThreadPriority(&main_prio, CUR_THREAD_HANDLE);
@@ -190,9 +225,10 @@ int Player_InitThread(Player* player, int model) {
 }
 
 int Player_Init(Player* player) {
+    PlayerConfiguration pc;
     Player_InitConsoles(player);
     if (Player_InitServices()) return 1;
-    Player_CheckConfig();
+    if (Player_CheckConfig(&pc)) return 2;
     aptHook(&player->apthook, Player_AptHook, (void*)player);
 
     LightEvent_Init(&player->playwaiting_event, RESET_ONESHOT);
@@ -207,6 +243,7 @@ int Player_Init(Player* player) {
     player->terminate_flag = 0;
 
     player->ll = create_list();
+    player->playerConfig = pc;
 
     uint32_t song_num = 0;
 
@@ -310,6 +347,7 @@ void Player_Exit(Player* player) {
     }
     linearFree(player->audio_stream);
     free_list(&player->ll);
+    fsExit();
     aptExit();
     ndspExit();
     romfsExit();

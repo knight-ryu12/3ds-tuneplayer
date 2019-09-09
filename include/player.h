@@ -1,28 +1,36 @@
 #pragma once
+#include <3ds.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <3ds.h>
 #include <xmp.h>
+#include "error.h"
 #include "fastmode.h"
 #include "linkedlist.h"
-#include "error.h"
 #include "sndthr.h"
 #include "song_info.h"
 #include "songhandler.h"
 #include "songview.h"
 
-void Player_AptHook(APT_HookType hook, void *param);
+void Player_AptHook(APT_HookType hook, void* param);
+
+typedef struct PlayerConfiguration {
+    uint8_t version;
+    uint8_t debugmode;  // 1= Enable Debug
+    int loopcheck;
+    int loadMode;  // LoadMode; using new method or xmp mode
+} PlayerConfiguration;
 
 typedef struct {
     PrintConsole top, bot;
     struct xmp_module_info minfo;
     //struct xmp_frame_info finfos[8];
     struct xmp_frame_info finfo;
+    PlayerConfiguration playerConfig;
     xmp_context ctx;
     bool context_released;
     LinkedList ll;
-    LLNode *current_song;
+    LLNode* current_song;
     uint8_t subsong;
     int current_isFT;
     aptHookCookie apthook;
@@ -49,6 +57,7 @@ int Player_InitServices();
 int Player_InitThread(Player* player, int model);
 int Player_Init(Player* player);
 void Player_Exit(Player* player);
+int Player_WriteConfig(PlayerConfiguration pc);
 
 static inline void Player_SelectTop(Player* player) {
     consoleSelect(&player->top);
@@ -67,10 +76,10 @@ static inline void Player_ClearConsoles(Player* player) {
 
 static inline void Player_StopSong(Player* player) {
     // already stopped
-    if(!player->run_sound) return;
+    if (!player->run_sound) return;
     // otherwise, pause if not yet
     // doing this in an already paused state will freeze, so check that
-    if(player->play_sound) {
+    if (player->play_sound) {
         player->play_sound = 0;
         LightEvent_Wait(&player->pause_event);
     }
