@@ -123,23 +123,13 @@ int Player_CheckConfig(PlayerConfiguration* config) {
     FS_Path filepath = {PATH_ASCII, strlen(configpath) + 1, configpath};
     Handle hndl;
     bool attempt = true;
-retry:
-    r = FSUSER_OpenArchive(&extarc, ARCHIVE_EXTDATA, path);
+
+    r = FSHelp_EnsuredExtdataMount(&extarc, fsa, MEDIATYPE_SD, 1, 2, 131072, 0, NULL);
     printf("FSUSER_OA %08lx\n", r);
-    if (R_FAILED(r) && attempt) {
-        //Not found, creating
-        printf("Creating extdata...");
-        r = FSHelp_FormatExtdata(fsa, MEDIATYPE_SD, 1, 2, 131072, 0, NULL);
-        if (r == 0) {
-            printf("Done [%08lx]\n", r);
-            attempt = false;
-            goto retry;
-        } else {
-            printf("Failed [%08lx]\n", r);
-            _debug_pause();
-            return 1;
-        }
-    } else if (!R_FAILED(r)) {
+    if (R_FAILED(r)) {
+        _debug_pause();
+        return 1;
+    } else {
         hndl = 0;
         attempt = true;
     file_retry:
@@ -347,6 +337,7 @@ void Player_Exit(Player* player) {
     }
     linearFree(player->audio_stream);
     free_list(&player->ll);
+    FSHelp_Cleanup();
     fsExit();
     aptExit();
     ndspExit();

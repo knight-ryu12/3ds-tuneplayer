@@ -174,11 +174,57 @@ static bool GetSMDH() {
 }
 
 Result FSHelp_FormatExtdata(uint64_t id, FS_MediaType media, uint32_t directories, uint32_t files, uint64_t sizeLimit, uint32_t smdhSize, uint8_t* smdh) {
-    if ((!smdhSize || !smdh) && !GetSMDH())
-        return MAKERESULT(RL_FATAL, RS_NOTFOUND, RM_APPLICATION, RD_NOT_FOUND);
     FS_ExtSaveDataInfo esdi;
     memset(&esdi, 0, sizeof(esdi));
     esdi.saveId = id;
     esdi.mediaType = media;
+
+    if ((!smdhSize || !smdh) && !GetSMDH()) {
+        // special case just for citra with a 3dsx
+        Result res = FSUSER_CreateExtSaveData(esdi, directories, files, sizeLimit, 0, NULL);
+        if (R_SUCCEEDED(res))
+            return res;
+        return MAKERESULT(RL_FATAL, RS_NOTFOUND, RM_APPLICATION, RD_NOT_FOUND);
+    }
+    if (!smdhSize || !smdh) {
+        smdh = smdh_data;
+        smdhSize = smdh_size;
+    }
     return FSUSER_CreateExtSaveData(esdi, directories, files, sizeLimit, smdh_size, smdh_data);
+}
+
+Result FSHelp_DeleteExtdata(uint64_t id, FS_MediaType media) {
+    FS_ExtSaveDataInfo esdi;
+    memset(&esdi, 0, sizeof(esdi));
+    esdi.saveId = id;
+    esdi.mediaType = media;
+    return FSUSER_DeleteExtSaveData(esdi);
+}
+
+// this function is a bit relentless to data, it will try to erase and create extdata again if need be
+Result FSHelp_EnsuredExtdataMount(FS_Archive* archive, uint64_t id, FS_MediaType media, uint32_t directories, uint32_t files, uint64_t sizeLimit, uint32_t smdhSize, uint8_t* smdh) {
+    Extdata_Path extdata = {.type = media, .extdataId = id};
+    FS_Path path = {
+        PATH_BINARY,
+        sizeof(extdata),
+        &extdata
+    };
+    Result res = FSUSER_OpenArchive(archive, ARCHIVE_EXTDATA, path);
+    if (R_SUCCEEDED(res))
+        return res;
+    if (R_SUMMARY(res) != RS_NOTFOUND) {
+        res = FSHelp_DeleteExtdata(id, media);
+        if (R_FAILED(res))
+            return res;
+    }
+    res = FSHelp_FormatExtdata(id, media, directories, files, sizeLimit, smdhSize, smdh);
+    if (R_FAILED(res))
+        return res;
+    return FSUSER_OpenArchive(archive, ARCHIVE_EXTDATA, path);
+}
+
+void FSHelp_Cleanup() {
+    free(smdh_data);
+    smdh_data = NULL;
+    smdh_size = 0;
 }
