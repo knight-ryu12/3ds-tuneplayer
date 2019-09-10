@@ -10,7 +10,7 @@
 //this undefined makes loading directory slower, but it's an option
 #define DISABLE_LOADCHECK
 
-#define MEMBLOCK_SIZE 4096
+#define MEMBLOCK_SIZE 2048
 // on over 2MB song, this value will be used
 
 static uint8_t *buffer_ptr = NULL;
@@ -45,7 +45,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
 
     if (xmp_test_module(path, &ti) != 0) {
         printf("Illegal module detected.\n");
-        return 2;
+        return 1;
     }
     // First, read filesize
     printf("%s\n%s\n", ti.name, ti.type);
@@ -59,19 +59,22 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
         //???????
         printf("Memory Allocation Error!\n");
         fclose(fp);
-        return 1;
+        return 2;
     }
     printf("malloced at %8p\n", buffer_ptr);
     // Fancy loading?
     uint32_t blocks = MEMBLOCK_SIZE;
-    if (buffer_sz <= 0x100000) blocks = MEMBLOCK_SIZE / 2;
-
+    if (buffer_sz >= 0x100000)
+        blocks = blocks * 2;
+    if (buffer_sz >= 0x400000)
+        blocks = blocks * 2;
     for (uint32_t i = 0; i < buffer_sz; i += blocks) {
         //COOL LOADING
         res = fread(buffer_ptr + i, 1, blocks, fp);
         if (res <= 0) {
             printf("error on reading\n");
-            break;
+            fclose(fp);
+            return 3;
         }
         printf("Load%8p rem%08lX read%4ld\r", buffer_ptr + i, buffer_sz - i, res);
     }
@@ -82,7 +85,8 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     printf("xmp loadstate %ld\n", res);
     if (res != 0) {
         printf("loadstate != 0!?\n");
-        return 3;
+        fclose(fp);
+        return 4;
     }
     xmp_get_module_info(c, mi);
     if (strstr(mi->mod->type, "XM") != NULL || strstr(mi->mod->type, "MOD") != NULL) {
@@ -99,7 +103,9 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     xmp_set_player(c, XMP_PLAYER_VOICES, 256);
     //_debug_pause();
     fclose(fp);
-
+#ifdef DEBUG
+    _debug_pause();
+#endif
     // we loaded so we'll need releasing next time
     if (released) *released = false;
 

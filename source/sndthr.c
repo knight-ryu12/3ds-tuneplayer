@@ -1,18 +1,11 @@
-#include "sndthr.h"
 #include <3ds.h>
 #include <stdio.h>
 #include <string.h>
 #include <xmp.h>
+#include "sndthr.h"
+#include "player.h"
 
-#define N3DS_BLOCK 3072
-#define O3DS_BLOCK 4096
-// can someone find sweet spot?
-
-extern volatile int runSound, playSound;
-extern struct xmp_frame_info fi;
-extern volatile uint64_t render_time;
-
-extern volatile uint32_t _PAUSE_FLAG;
+#define add_masked(x,y) (((x) + (y)) & 0x7)
 
 Result setup_ndsp() {
     Result res;
@@ -28,61 +21,122 @@ Result setup_ndsp() {
     return 0;
 }
 
-void soundThread(void *arg) {
-    struct thread_data *td = (struct thread_data *)arg;
-    int BLOCK = td->model ? N3DS_BLOCK : O3DS_BLOCK;
-    xmp_context c = td->c;
-    ndspWaveBuf waveBuf[2];
-    int16_t *sample;
-    int cur_wvbuf = 0;
-
-    sample = linearAlloc(BLOCK * sizeof(int16_t) * 2);
-    memset(waveBuf, 0, sizeof(waveBuf));
-    waveBuf[0].data_vaddr = sample;
-    waveBuf[1].data_vaddr = sample + BLOCK;
-
-    waveBuf[0].status = waveBuf[1].status = NDSP_WBUF_DONE;
-
-    if (xmp_start_player(c, SAMPLE_RATE, 0) != 0) {
-        printf("Error on xmp_start\n");
-        goto exit;
+/*
+static void _callback(void* data) {
+    Player* player = (Player*)data;
+    if (player->run_sound && player->waveBuf[player->cur_wvbuf].status == NDSP_WBUF_DONE) {
+        LightEvent_Signal(&player->ndspcallback_event);
     }
+}
 
-    _PAUSE_FLAG = 0;
-    uint64_t first = 0;
+void soundThread(void *arg) {
+    Player* player = (Player*)arg;
+
+    ndspWaveBuf *wave;
+
+    u64 first = 0;
     //uint64_t second = 0;
-    while (runSound) {
-        first = svcGetSystemTick();
-        if (!playSound) {
-            _PAUSE_FLAG = 1;
-            render_time = 0;
-            while (runSound && !playSound) {
-                svcSleepThread(1000000);
-            };
-            // is sleep quit by runSound being off?
-            if (!runSound) break;
-            _PAUSE_FLAG = 0;
-            continue;
+    while (!player->terminate_flag) {
+        LightEvent_Wait(&player->playready_event);
+        if (player->terminate_flag) break;
+        for (int i = 0; i < 8; i++) {
+            xmp_get_frame_info(player->ctx, &player->finfos[add_masked(player->cur_wvbuf, i)]);
+
+            wave = &player->waveBuf[add_masked(player->cur_wvbuf, i)];
+            xmp_play_buffer(player->ctx, wave->data_pcm16, player->block_size, 0);
+            wave->nsamples = player->block_size / 4;
         }
 
-        xmp_get_frame_info(c, &fi);
+        ndspSetCallback(&_callback, (void*)player);
 
-        int16_t *sbuf = (int16_t *)waveBuf[cur_wvbuf].data_vaddr;
-        xmp_play_buffer(c, sbuf, BLOCK, 0);
-        waveBuf[cur_wvbuf].nsamples = BLOCK / 4;
+        wave = &player->waveBuf[player->cur_wvbuf];
+        DSP_FlushDataCache(wave->data_pcm16, player->block_size);
+        ndspChnWaveBufAdd(CHANNEL, wave);
 
-        DSP_FlushDataCache(sbuf, BLOCK);
-        ndspChnWaveBufAdd(CHANNEL, &waveBuf[cur_wvbuf]);
-        cur_wvbuf ^= 1;
-        render_time = svcGetSystemTick() - first;
-        while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && runSound)
-            //svcSleepThread(10e9 / (BLOCK / 2));
-            svcSleepThread(100000000 / (BLOCK / 2));
+        while (player->run_sound) {
+            LightEvent_Wait(&player->ndspcallback_event);
+
+            first = svcGetSystemTick();
+            if (!player->play_sound) {
+                player->render_time = 0;
+                LightEvent_Signal(&player->pause_event);
+                LightEvent_Wait(&player->resume_event);
+                // is sleep quit by runSound being off?
+                player->play_sound = 1;
+                LightEvent_Signal(&player->pause_event);
+                if (!player->run_sound || player->terminate_flag) break;
+                _callback((void*)player);
+                continue;
+            }
+
+            u32 cur = player->cur_wvbuf;
+
+            wave = &player->waveBuf[player->cur_wvbuf];
+
+            DSP_FlushDataCache(wave->data_pcm16, player->block_size);
+            ndspChnWaveBufAdd(CHANNEL, wave);
+
+            player->cur_wvbuf = add_masked(player->cur_wvbuf, 1);
+
+            xmp_get_frame_info(player->ctx, &player->finfos[cur]);
+
+            wave = &player->waveBuf[cur];
+            xmp_play_buffer(player->ctx, wave->data_pcm16, player->block_size, 0);
+            wave->nsamples = player->block_size / 4; // Because of interleve
+
+            player->render_time = svcGetSystemTick() - first;
+        }
+        ndspSetCallback(NULL, NULL);
+        LightEvent_Clear(&player->ndspcallback_event);
     }
-exit:
     ndspChnWaveBufClear(CHANNEL);
-    ndspExit();
-    linearFree(sample);
-    runSound = 0;
+    threadExit(0);
+}
+*/
+
+void soundThread(void *arg) {
+    Player* player = (Player*)arg;
+    u32 BLOCK = player->block_size;
+
+    int cur_wvbuf = 0;
+    ndspWaveBuf *waveBuf = player->waveBuf;
+
+    u64 first = 0;
+    //uint64_t second = 0;
+    while (!player->terminate_flag) {
+        LightEvent_Signal(&player->playwaiting_event);
+        LightEvent_Wait(&player->playready_event);
+        if (player->terminate_flag) break;
+
+        while (player->run_sound) {
+            first = svcGetSystemTick();
+
+            if (!player->play_sound) {
+                player->render_time = 0;
+                LightEvent_Signal(&player->pause_event);
+                LightEvent_Wait(&player->resume_event);
+                // is sleep quit by runSound being off?
+                player->play_sound = 1;
+                LightEvent_Signal(&player->pause_event);
+                if (!player->run_sound || player->terminate_flag) break;
+            }
+
+            xmp_get_frame_info(player->ctx, &player->finfo);
+
+            s16 *sbuf = waveBuf[cur_wvbuf].data_pcm16;
+            xmp_play_buffer(player->ctx, sbuf, BLOCK, 0);
+            waveBuf[cur_wvbuf].nsamples = BLOCK / 4;
+
+            DSP_FlushDataCache(sbuf, BLOCK);
+            ndspChnWaveBufAdd(CHANNEL, &waveBuf[cur_wvbuf]);
+            cur_wvbuf ^= 1;
+
+            player->render_time = svcGetSystemTick() - first;
+            while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && player->run_sound)
+                //svcSleepThread(10e9 / (BLOCK / 2));
+                svcSleepThread(100000000 / (BLOCK / 2));
+        }
+    }
+    ndspChnWaveBufClear(CHANNEL);
     threadExit(0);
 }

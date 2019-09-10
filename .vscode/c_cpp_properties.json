@@ -14,7 +14,7 @@
                 "C:/msys64/opt/devkitpro/libctru/include/**"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/clang",
+            "compilerPath": "C:/msys64/opt/devkitpro/devkitARM/bin/arm-none-eabi-gcc.exe",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"
