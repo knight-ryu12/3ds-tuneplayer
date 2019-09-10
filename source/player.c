@@ -145,17 +145,17 @@ int Player_CheckConfig(PlayerConfiguration* config) {
         } else if (!R_FAILED(r)) {
             //File exists, check for version
             uint32_t readsz;
-            PlayerConfiguration pc = {};
-            r = FSFILE_Read(hndl, &readsz, 0, &pc, sizeof(PlayerConfiguration));
+            r = FSFILE_Read(hndl, &readsz, 0, config, sizeof(PlayerConfiguration));
             printf("FSFILE_R %08lx, %ld\n", r, readsz);
-            printf("Version %d\n", pc.version);
-            printf("Debug %d\n", pc.debugmode);
-            if (pc.version < CONFIG_VERSION) {
+            printf("Version %d\n", config->version);
+            printf("Debug %d\n", config->debugmode);
+            if (config->version < CONFIG_VERSION) {
                 //write new config, while preserving config contents;
                 printf("Outdated/New creation, updating...");
-                default_pc.loopcheck = pc.loopcheck;
+                default_pc.loopcheck = config->loopcheck;
                 uint32_t writesz;
                 r = FSFILE_Write(hndl, &writesz, 0, &default_pc, sizeof(default_pc), 0);
+                *config = default_pc;
                 printf("Done.\n");
                 printf("FSFILE_W %08lx, %ld\n", r, writesz);
             }

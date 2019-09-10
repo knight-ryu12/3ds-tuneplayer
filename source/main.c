@@ -11,9 +11,7 @@
 #include "songhandler.h"
 #include "songview.h"
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
-#define DISABLE_LOOPCHK  // Soon I'll enable this.
 
-#define EXTDATA_ID 0xffff0010
 // 3ds-tuneplayer backed by libxmp (CMatsuoka, thx), by Chromaryu
 // "80's praise on 2012 hardware" - Chromaryu
 
@@ -25,7 +23,7 @@ int player_config = 0;
 
 void printhelp() {
     printf("GREETZ TO ALL TUNE MAKERS!\n");
-    printf("=CONTROLLS=\n");
+    printf("=CONTROLS=\n");
     printf("A = change screens\n");
     printf("DPAD LR = change songs\n");
     printf("DPAD UD = scroll\n");
@@ -108,6 +106,8 @@ int main(int argc, char *argv[]) {
         } else if (info_flag == 16) {
             // Special.
             if (!isPrint) {
+                Player_SelectTop(&g_player);
+                Player_ConfigsScreen(&g_player, &subscroll);
                 isPrint = true;
             }
         } else {
