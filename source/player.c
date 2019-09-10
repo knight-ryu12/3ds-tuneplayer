@@ -191,16 +191,19 @@ int Player_WriteConfig(PlayerConfiguration pc) {
     r = FSFILE_Write(hndl, &writesz, 0, &pc, sizeof(PlayerConfiguration), 0);
     printf("FSFILE_W %08lx\n", r);
     if (R_FAILED(r)) return 3;
+    if (hndl) FSFILE_Close(hndl);
+    FSUSER_CloseArchive(extarc);
     return 0;
 }
 
 void Player_ConfigsScreen(Player* player, int* subscroll) {
     int configuable = 3;
-    printf("Config Screen\n");
+    printf("=Config Screen=\n");
     printf("Config version: %d\n", player->playerConfig.version);
-
+    printf("Loop Count: %d\n", player->playerConfig.loopcheck);
     //Scroll range 3
     //TODO: please fix
+
 }
 
 int Player_InitThread(Player* player, int model) {
