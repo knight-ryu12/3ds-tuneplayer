@@ -1,12 +1,18 @@
-#include <3ds.h>
 #include "player.h"
+#include <3ds.h>
+#include <unistd.h>
+#include <wchar.h>
+#include "fshelper.h"
 #include "sndthr.h"
 
+#define CONFIG_VERSION 3
+#define FSA_PATH 0x4152435A00000001LLU
+
 static inline int get_debug_testing_model() {
-	int model = -1;
-	#ifdef DEBUG
-	hidScanInput();
-    u32 h = hidKeysHeld();
+    int model = -1;
+#ifdef DEBUG
+    hidScanInput();
+    uint32_t h = hidKeysHeld();
     if (h & KEY_R) {
         model = 0;
         printf("Model force 0.\n");
@@ -20,14 +26,14 @@ static inline int get_debug_testing_model() {
     if (h & KEY_DUP) {
         _debug_pause();
     }
-    #endif
+#endif
     return model;
 }
 
-const char *default_search_path[] = {"romfs:/", "sdmc:/mod", "sdmc:/mods"}; //Check Path
+const char* default_search_path[] = {"romfs:/", "sdmc:/mod", "sdmc:/mods"};  //Check Path
 
-void Player_AptHook(APT_HookType hook, void *param) {
-	Player* player = (Player*)param;
+void Player_AptHook(APT_HookType hook, void* param) {
+    Player* player = (Player*)param;
     switch (hook) {
         case APTHOOK_ONSUSPEND:
         case APTHOOK_ONSLEEP:
@@ -75,27 +81,144 @@ int Player_InitServices() {
     res = aptInit();
     printf("aptInit %08lx\n", res);
     if (R_FAILED(res)) {
-        printf("Error at aptInit()???? res %08lx\n", res);
+        printf("Error at aptInit()????");
         sendError("Error at aptInit()!?!", 0xFFFF0003);
+        return 1;
+    }
+    res = fsInit();
+    printf("fsInit %08lx\n", res);
+    if (R_FAILED(res)) {
+        printf("Error at fsInit()????");
+        sendError("Error at fsInit()!?!", 0xFFFF0004);
         return 1;
     }
     return 0;
 }
 
+int Player_CheckConfig(PlayerConfiguration* config) {
+    // And parsing.
+    /*
+        basically
+        you create/hardcode FS_Path you need for an archive
+        have an FS_Archive variable, stored some way you dont lose it
+        call FSUSER_OpenArchive with &variable of that FS_Archive
+        check if success
+        have a Handle variable
+        call FSUSER_OpenFile with &variable of that Handle, and FS_Archive for the variable, giving this FS_Archive will access the opened archive
+        check success
+        do whatever operation you need with other FSFILE_ calls for the file
+        FSFILE_Close() that Handle when you're done
+        and if you're done with the archive itself, FSUSER_CloseArchive with the saved FS_Archive
+    */
+    PlayerConfiguration default_pc = {CONFIG_VERSION, 0, -1, 0};
+    uint64_t fsa = FSA_PATH;
+    Result r;
+    Extdata_Path extdata = {.type = MEDIATYPE_SD, .extdataId = fsa};
+    FS_Path path = {
+        PATH_BINARY,
+        sizeof(extdata),
+        &extdata};
+    FS_Archive extarc;
+    const char* configpath = "/config.bin";
+    FS_Path filepath = {PATH_ASCII, strlen(configpath) + 1, configpath};
+    Handle hndl;
+    bool attempt = true;
+
+    r = FSHelp_EnsuredExtdataMount(&extarc, fsa, MEDIATYPE_SD, 1, 2, 131072, 0, NULL);
+    printf("FSUSER_OA %08lx\n", r);
+    if (R_FAILED(r)) {
+        _debug_pause();
+        return 1;
+    } else {
+        hndl = 0;
+        attempt = true;
+    file_retry:
+        //Parse
+        r = FSUSER_OpenFile(&hndl, extarc, filepath, FS_OPEN_READ | FS_OPEN_WRITE, 0);
+        printf("FSUSER_OF %08lx\n", r);
+        if (r == 0xc8804470 && attempt) {
+            // File not found
+            attempt = false;
+            r = FSUSER_CreateFile(extarc, filepath, 0, 128);
+            printf("FSUSER_CF %08lx\n", r);
+            if (!R_FAILED(r)) goto file_retry;
+        } else if (!R_FAILED(r)) {
+            //File exists, check for version
+            uint32_t readsz;
+            PlayerConfiguration pc = {};
+            r = FSFILE_Read(hndl, &readsz, 0, &pc, sizeof(PlayerConfiguration));
+            printf("FSFILE_R %08lx, %ld\n", r, readsz);
+            printf("Version %d\n", pc.version);
+            printf("Debug %d\n", pc.debugmode);
+            if (pc.version < CONFIG_VERSION) {
+                //write new config, while preserving config contents;
+                printf("Outdated/New creation, updating...");
+                default_pc.loopcheck = pc.loopcheck;
+                uint32_t writesz;
+                r = FSFILE_Write(hndl, &writesz, 0, &default_pc, sizeof(default_pc), 0);
+                printf("Done.\n");
+                printf("FSFILE_W %08lx, %ld\n", r, writesz);
+            }
+        }
+        if (hndl) FSFILE_Close(hndl);
+        FSUSER_CloseArchive(extarc);
+    }
+    _debug_pause();
+    return 0;
+}
+
+int Player_WriteConfig(PlayerConfiguration pc) {
+    uint64_t fsa = FSA_PATH;
+    Result r;
+    Extdata_Path extdata = {.type = MEDIATYPE_SD, .extdataId = fsa};
+    FS_Path path = {
+        PATH_BINARY,
+        sizeof(extdata),
+        &extdata};
+    FS_Archive extarc;
+    const char* configpath = "/config.bin";
+    FS_Path filepath = {PATH_ASCII, strlen(configpath) + 1, configpath};
+    Handle hndl;
+    bool attempt = true;
+    //first, trying to open Archive to popilate extarc from path
+    r = FSUSER_OpenArchive(&extarc, ARCHIVE_EXTDATA, path);
+    printf("FSUSER_OA %08lx\n", r);
+    if (R_FAILED(r)) return 1;
+    r = FSUSER_OpenFile(&hndl, extarc, filepath, FS_OPEN_READ | FS_OPEN_WRITE, 0);
+    printf("FSUSER_OF %08lx\n", r);
+    if (R_FAILED(r)) return 2;
+    uint32_t writesz;
+    r = FSFILE_Write(hndl, &writesz, 0, &pc, sizeof(PlayerConfiguration), 0);
+    printf("FSFILE_W %08lx\n", r);
+    if (R_FAILED(r)) return 3;
+    return 0;
+}
+
+void Player_ConfigsScreen(Player* player, int* subscroll) {
+    int configuable = 3;
+    printf("Config Screen\n");
+    printf("Config version: %d\n", player->playerConfig.version);
+
+    //Scroll range 3
+    //TODO: please fix
+}
+
 int Player_InitThread(Player* player, int model) {
-	s32 main_prio;
+    int32_t main_prio;
     Result res = svcGetThreadPriority(&main_prio, CUR_THREAD_HANDLE);
     if (R_FAILED(res)) return 1;
     player->sound_thread = threadCreate(soundThread, player, 32768, main_prio + 1,
-                           model ? 2 : 0, true);
+                                        model ? 2 : 0, true);
     if (!player->sound_thread) return 1;
     LightEvent_Wait(&player->playwaiting_event);
     return 0;
 }
 
 int Player_Init(Player* player) {
+    PlayerConfiguration pc;
     Player_InitConsoles(player);
     if (Player_InitServices()) return 1;
+    if (Player_CheckConfig(&pc)) return 2;
     aptHook(&player->apthook, Player_AptHook, (void*)player);
 
     LightEvent_Init(&player->playwaiting_event, RESET_ONESHOT);
@@ -110,10 +233,11 @@ int Player_Init(Player* player) {
     player->terminate_flag = 0;
 
     player->ll = create_list();
+    player->playerConfig = pc;
 
-    u32 song_num = 0;
+    uint32_t song_num = 0;
 
-    song_num += searchsong(default_search_path[0], &player->ll); //Atleast, leave this one alone.
+    song_num += searchsong(default_search_path[0], &player->ll);  //Atleast, leave this one alone.
     song_num += searchsong(default_search_path[1], &player->ll);
     song_num += searchsong(default_search_path[2], &player->ll);
 
@@ -150,7 +274,7 @@ int Player_Init(Player* player) {
     //player->block_size = MS_TO_PCM16_SIZE(SAMPLE_RATE, 2, dmodel ? 50 : 100) & ~0x3;
     player->block_size = dmodel ? N3DS_BLOCK : O3DS_BLOCK;
 
-    player->audio_stream = linearAlloc(player->block_size * sizeof(s16) * 2);
+    player->audio_stream = linearAlloc(player->block_size * sizeof(int16_t) * 2);
     if (!player->audio_stream) {
         free_list(&player->ll);
         xmp_free_context(player->ctx);
@@ -202,17 +326,19 @@ void Player_Exit(Player* player) {
     LightEvent_Signal(&player->pause_event);
     //LightEvent_Signal(&player->ndspcallback_event);
     threadJoin(player->sound_thread, U64_MAX);
-    if(player->ctx) xmp_stop_module(player->ctx);
+    if (player->ctx) xmp_stop_module(player->ctx);
     //_debug_pause();
     aptUnhook(&player->apthook);
-    if(player->ctx) {
+    if (player->ctx) {
         xmp_end_player(player->ctx);
-        if(!player->context_released)
-        	xmp_release_module(player->ctx);
+        if (!player->context_released)
+            xmp_release_module(player->ctx);
         xmp_free_context(player->ctx);
     }
     linearFree(player->audio_stream);
     free_list(&player->ll);
+    FSHelp_Cleanup();
+    fsExit();
     aptExit();
     ndspExit();
     romfsExit();

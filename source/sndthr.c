@@ -34,7 +34,7 @@ void soundThread(void *arg) {
 
     ndspWaveBuf *wave;
 
-    u64 first = 0;
+    uint64_t first = 0;
     //uint64_t second = 0;
     while (!player->terminate_flag) {
         LightEvent_Wait(&player->playready_event);
@@ -69,7 +69,7 @@ void soundThread(void *arg) {
                 continue;
             }
 
-            u32 cur = player->cur_wvbuf;
+            uint32_t cur = player->cur_wvbuf;
 
             wave = &player->waveBuf[player->cur_wvbuf];
 
@@ -96,12 +96,12 @@ void soundThread(void *arg) {
 
 void soundThread(void *arg) {
     Player* player = (Player*)arg;
-    u32 BLOCK = player->block_size;
+    uint32_t BLOCK = player->block_size;
 
     int cur_wvbuf = 0;
     ndspWaveBuf *waveBuf = player->waveBuf;
 
-    u64 first = 0;
+    uint64_t first = 0;
     //uint64_t second = 0;
     while (!player->terminate_flag) {
         LightEvent_Signal(&player->playwaiting_event);
@@ -123,7 +123,7 @@ void soundThread(void *arg) {
 
             xmp_get_frame_info(player->ctx, &player->finfo);
 
-            s16 *sbuf = waveBuf[cur_wvbuf].data_pcm16;
+            int16_t *sbuf = waveBuf[cur_wvbuf].data_pcm16;
             xmp_play_buffer(player->ctx, sbuf, BLOCK, 0);
             waveBuf[cur_wvbuf].nsamples = BLOCK / 4;
 
