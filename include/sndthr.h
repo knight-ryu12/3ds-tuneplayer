@@ -16,10 +16,12 @@ Result setup_ndsp();
 void soundThread(void *arg);
 
 static inline void _debug_pause() {
+    #ifdef DEBUG
     printf("Press start.\n");
     while (1) {
         hidScanInput();
         uint32_t kDown = hidKeysDown();
         if (kDown & KEY_START) break;
     }
+    #endif
 }
