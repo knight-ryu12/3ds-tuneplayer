@@ -42,7 +42,7 @@ typedef struct
     uint32_t regLockout;
     uint8_t mmID[0xC];  //M(atch)M(aker)ID
     uint32_t flag;
-    uint16_t vEula;
+    uint16_t vEula;  //Version EULA
     uint16_t reserved;
     uint32_t OADF;   // Optimal Animation Default Frame ???
     uint32_t CECID;  // Street pass ID
@@ -207,8 +207,7 @@ Result FSHelp_EnsuredExtdataMount(FS_Archive* archive, uint64_t id, FS_MediaType
     FS_Path path = {
         PATH_BINARY,
         sizeof(extdata),
-        &extdata
-    };
+        &extdata};
     Result res = FSUSER_OpenArchive(archive, ARCHIVE_EXTDATA, path);
     if (R_SUCCEEDED(res))
         return res;

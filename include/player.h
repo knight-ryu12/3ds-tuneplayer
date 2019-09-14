@@ -58,7 +58,7 @@ int Player_InitThread(Player* player, int model);
 int Player_Init(Player* player);
 void Player_Exit(Player* player);
 int Player_WriteConfig(PlayerConfiguration pc);
-
+void Player_ConfigsScreen(Player*, int*);
 static inline void Player_SelectTop(Player* player) {
     consoleSelect(&player->top);
 }

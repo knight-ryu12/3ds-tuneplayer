@@ -156,56 +156,58 @@ int main(int argc, char *argv[]) {
             Player_TogglePause(&g_player);
         }
 
-        if (kDown & KEY_DOWN) {  //|| (kHeld & KEY_DOWN && timer_cnt >= 50)) {
-            isPrint = false;
-            if (kHeld & KEY_L) {
-                subscroll++;
-            } else {
-                scroll++;
-            }
-        }
-
-        if (kDown & KEY_UP) {  //|| (kHeld & KEY_UP && timer_cnt >= 50)) {
-            isPrint = false;
-            if (kHeld & KEY_L)
-                if (subscroll != 0 && subscroll >= 0) subscroll--;
-            if (scroll != 0 && scroll >= 0) scroll--;
-        }
-
-        if (kDown & KEY_RIGHT) {
-            if (kHeld & KEY_L) {
-                Player_NextSubSong(&g_player);
-            } else {
-                Player_ClearConsoles(&g_player);
-                gotoxy(0, 0);
-                if (Player_NextSong(&g_player) != 0) {
-                    printf("Error on loadSong !!!?\n");
-                    break;
-                };
-                //_debug_pause();
-                Player_ClearConsoles(&g_player);
-                g_player.render_time = g_player.screen_time = 0;
-                first = svcGetSystemTick();
-                scroll = 0;
+        if (info_flag != 16) {
+            if (kDown & KEY_DOWN) {  //|| (kHeld & KEY_DOWN && timer_cnt >= 50)) {
                 isPrint = false;
+                if (kHeld & KEY_L) {
+                    subscroll++;
+                } else {
+                    scroll++;
+                }
             }
-        }
 
-        if (kDown & KEY_LEFT) {
-            if (kHeld & KEY_L) {
-                Player_PrevSubSong(&g_player);
-            } else {
-                Player_ClearConsoles(&g_player);
-                gotoxy(0, 0);
-                if (Player_PrevSong(&g_player) != 0) {
-                    printf("Error on loadSong !!!?\n");
-                    break;
-                };
-                Player_ClearConsoles(&g_player);
-                g_player.render_time = g_player.screen_time = 0;
-                first = svcGetSystemTick();
-                scroll = 0;
+            if (kDown & KEY_UP) {  //|| (kHeld & KEY_UP && timer_cnt >= 50)) {
                 isPrint = false;
+                if (kHeld & KEY_L)
+                    if (subscroll != 0 && subscroll >= 0) subscroll--;
+                if (scroll != 0 && scroll >= 0) scroll--;
+            }
+
+            if (kDown & KEY_RIGHT) {
+                if (kHeld & KEY_L) {
+                    Player_NextSubSong(&g_player);
+                } else {
+                    Player_ClearConsoles(&g_player);
+                    gotoxy(0, 0);
+                    if (Player_NextSong(&g_player) != 0) {
+                        printf("Error on loadSong !!!?\n");
+                        break;
+                    };
+                    //_debug_pause();
+                    Player_ClearConsoles(&g_player);
+                    g_player.render_time = g_player.screen_time = 0;
+                    first = svcGetSystemTick();
+                    scroll = 0;
+                    isPrint = false;
+                }
+            }
+
+            if (kDown & KEY_LEFT) {
+                if (kHeld & KEY_L) {
+                    Player_PrevSubSong(&g_player);
+                } else {
+                    Player_ClearConsoles(&g_player);
+                    gotoxy(0, 0);
+                    if (Player_PrevSong(&g_player) != 0) {
+                        printf("Error on loadSong !!!?\n");
+                        break;
+                    };
+                    Player_ClearConsoles(&g_player);
+                    g_player.render_time = g_player.screen_time = 0;
+                    first = svcGetSystemTick();
+                    scroll = 0;
+                    isPrint = false;
+                }
             }
         }
         if (kDown & KEY_START) break;  // break in order to return to hbmenu

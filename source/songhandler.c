@@ -28,6 +28,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     FILE *fp = NULL;
     struct xmp_test_info ti;
     int32_t res;
+    uint32_t rem = 0;
     printf("Loading...\n");
     //free(buffer_ptr);
     //buffer_ptr = NULL;
@@ -68,15 +69,18 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
         blocks = blocks * 2;
     if (buffer_sz >= 0x400000)
         blocks = blocks * 2;
+
+    rem = buffer_sz;
     for (uint32_t i = 0; i < buffer_sz; i += blocks) {
         //COOL LOADING
-        res = fread(buffer_ptr + i, 1, blocks, fp);
+        res = fread((buffer_ptr + i), 1, blocks < rem ? blocks : rem, fp);
         if (res <= 0) {
             printf("error on reading\n");
             fclose(fp);
             return 3;
         }
-        printf("Load%8p rem%08lX read%4ld\r", buffer_ptr + i, buffer_sz - i, res);
+        rem -= res;
+        printf("Load%8p rem%08lX read%4ld\r", buffer_ptr + i, rem, res);
     }
     printf("\n");
     // Try testing first
