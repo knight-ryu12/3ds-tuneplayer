@@ -77,41 +77,44 @@ int main(int argc, char *argv[]) {
         }
 
         Player_PrintGeneric(&g_player);
-        /// 000 shows default info.
-        if (info_flag == 1) {
-            if (!isPrint) {
-                Player_PrintInstruments(&g_player, &scroll, subscroll);
-                isPrint = true;
-            }
-            Player_PrintChannelInstruments(&g_player, &subscroll);
-        } else if (info_flag == 2) {
-            if (!isPrint) {
-                Player_PrintSamples(&g_player, &scroll);
-                isPrint = true;
-            }
-        } else if (info_flag == 3) {
-            //Help.
-            if (!isPrint) {
-                Player_SelectTop(&g_player);
-                printhelp();
-                isPrint = true;
-            }
-        } else if (info_flag == 8) {
-            if (!isPrint) {
-                //Player_SelectTop(&g_player);
-                //consoleClear(); // This'll stop garbage
-                Player_PrintPlaylist(&g_player, &scroll, &subscroll);
-                isPrint = true;
-            }
-        } else if (info_flag == 16) {
-            // Special.
-            if (!isPrint) {
-                Player_SelectTop(&g_player);
-                Player_ConfigsScreen(&g_player, &subscroll);
-                isPrint = true;
-            }
-        } else {
-            Player_PrintChannel(&g_player, &scroll, &subscroll);
+        switch (info_flag) {
+            case 1:
+                if (!isPrint) {
+                    Player_PrintInstruments(&g_player, &scroll, subscroll);
+                    isPrint = true;
+                }
+                Player_PrintChannelInstruments(&g_player, &subscroll);
+                break;
+            case 2:
+                if (!isPrint) {
+                    Player_PrintSamples(&g_player, &scroll);
+                    isPrint = true;
+                }
+                break;
+            case 3:
+                if (!isPrint) {
+                    Player_SelectTop(&g_player);
+                    printhelp();
+                    isPrint = true;
+                }
+                break;
+            case 8:
+                if (!isPrint) {
+                    //Player_SelectTop(&g_player);
+                    //consoleClear(); // This'll stop garbage
+                    Player_PrintPlaylist(&g_player, &scroll, &subscroll);
+                    isPrint = true;
+                }
+                break;
+            case 16:
+                if (!isPrint) {
+                    Player_SelectTop(&g_player);
+                    Player_ConfigsScreen(&g_player, &subscroll);
+                    isPrint = true;
+                }
+                break;
+            default:
+                Player_PrintChannel(&g_player, &scroll, &subscroll);
         }
 
         hidScanInput();
