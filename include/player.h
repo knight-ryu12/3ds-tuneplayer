@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <xmp.h>
+#include "config.h"
 #include "error.h"
 #include "fastmode.h"
 #include "linkedlist.h"
@@ -14,19 +15,12 @@
 
 void Player_AptHook(APT_HookType hook, void* param);
 
-typedef struct PlayerConfiguration {
-    uint8_t version;
-    uint8_t debugmode;  // 1= Enable Debug
-    int loopcheck;
-    int loadMode;  // LoadMode; using new method or xmp mode
-} PlayerConfiguration;
-
 typedef struct {
     PrintConsole top, bot;
     struct xmp_module_info minfo;
     //struct xmp_frame_info finfos[8];
     struct xmp_frame_info finfo;
-    PlayerConfiguration playerConfig;
+    PlayerConfig playerConfig;
     xmp_context ctx;
     bool context_released;
     LinkedList ll;
@@ -57,8 +51,8 @@ int Player_InitServices();
 int Player_InitThread(Player* player, int model);
 int Player_Init(Player* player);
 void Player_Exit(Player* player);
-int Player_WriteConfig(PlayerConfiguration pc);
-void Player_ConfigsScreen(Player*, int*);
+void Player_ConfigsScreen(Player* player, int* subscroll);
+
 static inline void Player_SelectTop(Player* player) {
     consoleSelect(&player->top);
 }
