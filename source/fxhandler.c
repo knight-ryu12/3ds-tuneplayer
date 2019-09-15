@@ -115,9 +115,11 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
                         *p_arg1 = "PTLpG";
                     break;
                 case 0xa:
+                    isBufferMem = true;
                     *p_arg1 = "EFVsU";
                     break;
                 case 0xb:
+                    isBufferMem = true;
                     *p_arg1 = "EFVsD";
                     break;
                 case 0xc:
