@@ -86,9 +86,9 @@ static HIDFUNC(ButtonUpScroll) {
     main_loop_data* data = (main_loop_data*)arg;
 
     data->isPrint = false;
-    if (frame.held & KEY_L)
-        if (data->subscroll != 0 && data->subscroll >= 0) data->subscroll--;
-    if (data->scroll != 0 && data->scroll >= 0) data->scroll--;
+    if (frame.held & KEY_L) {
+        if (data->subscroll > 0) data->subscroll--;
+    } else if (data->scroll > 0) data->scroll--;
     return 0;
 }
 
