@@ -61,11 +61,19 @@ static inline void Player_SelectBottom(Player* player) {
     consoleSelect(&player->bot);
 }
 
-static inline void Player_ClearConsoles(Player* player) {
+static inline void Player_ClearTop(Player* player) {
     Player_SelectTop(player);
     consoleClear();
+}
+
+static inline void Player_ClearBottom(Player* player) {
     Player_SelectBottom(player);
     consoleClear();
+}
+
+static inline void Player_ClearConsoles(Player* player) {
+    Player_ClearTop(player);
+    Player_ClearBottom(player);
 }
 
 static inline void Player_StopSong(Player* player) {
