@@ -10,6 +10,7 @@
 #include "song_info.h"
 #include "songhandler.h"
 #include "songview.h"
+#include "hidmapper.h"
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
 // 3ds-tuneplayer backed by libxmp (CMatsuoka, thx), by Chromaryu
@@ -21,7 +22,211 @@ Player g_player;
 
 int player_config = 0;
 
-void printhelp() {
+typedef struct {
+    uint64_t first;
+    int scroll;
+    int subscroll;
+    uint8_t info_flag;
+    bool isPrint;
+} main_loop_data;
+
+static HIDBind infoscreen[];
+static HIDBind configscreen[];
+static void printhelp();
+
+static HIDFUNC(ButtonStop) {
+    g_player.terminate_flag = 1;
+    return 1;
+}
+
+static HIDFUNC(ButtonNextSong) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    if (frame.held & KEY_L) {
+        Player_NextSubSong(&g_player);
+    } else {
+        Player_ClearConsoles(&g_player);
+        gotoxy(0, 0);
+        if (Player_NextSong(&g_player) != 0) {
+            printf("Error on loadSong !!!?\n");
+            return -1;
+        };
+        //_debug_pause();
+        Player_ClearConsoles(&g_player);
+        g_player.render_time = g_player.screen_time = 0;
+        data->first = svcGetSystemTick();
+        data->scroll = 0;
+        data->isPrint = false;
+    }
+    return 1;
+}
+
+static HIDFUNC(ButtonPrevSong) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    if (frame.held & KEY_L) {
+        Player_PrevSubSong(&g_player);
+    } else {
+        Player_ClearConsoles(&g_player);
+        gotoxy(0, 0);
+        if (Player_PrevSong(&g_player) != 0) {
+            printf("Error on loadSong !!!?\n");
+            return -1;
+        };
+        Player_ClearConsoles(&g_player);
+        g_player.render_time = g_player.screen_time = 0;
+        data->first = svcGetSystemTick();
+        data->scroll = 0;
+        data->isPrint = false;
+    }
+    return 1;
+}
+
+static HIDFUNC(ButtonUpScroll) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    data->isPrint = false;
+    if (frame.held & KEY_L) {
+        if (data->subscroll > 0) data->subscroll--;
+    } else if (data->scroll > 0) data->scroll--;
+    return 0;
+}
+
+static HIDFUNC(ButtonDownScroll) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    data->isPrint = false;
+    if (frame.held & KEY_L) {
+        data->subscroll++;
+    } else {
+        data->scroll++;
+    }
+    return 0;
+}
+
+static HIDFUNC(ButtonPause) {
+    Player_TogglePause(&g_player);
+    return 0;
+}
+
+static HIDFUNC(ButtonNextInfoScreen) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    int ret = 0;
+
+    if (data->info_flag > 3 && data->info_flag != 8) {
+        if (R_FAILED(HIDMapper_SetMapping(infoscreen, false))) return -1;
+        ret = 1;
+    }
+
+    Player_ClearConsoles(&g_player);
+    data->isPrint = false;
+    if (++data->info_flag > 3) {
+        // 012012012
+        data->info_flag = 0;
+    }
+
+    return ret;
+}
+
+static HIDFUNC(ButtonConfigSaveAndExit) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    // TODO
+
+    if (R_FAILED(HIDMapper_SetMapping(infoscreen, false))) return -1;
+
+    data->isPrint = false;
+    data->info_flag = 0;
+    data->scroll = 0;
+
+    return 1;
+}
+
+static HIDFUNC(ButtonPlaylistScreen) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    int ret = 0;
+
+    // info and playlist screen share the same layout, only change if need be
+    if (data->info_flag > 3 && data->info_flag != 8) {
+        if (R_FAILED(HIDMapper_SetMapping(infoscreen, false))) return -1;
+        ret = 1;
+    }
+
+    data->isPrint = false;
+    data->info_flag = 8;
+    data->scroll = 0;
+
+    return ret;
+}
+
+static HIDFUNC(ButtonConfigScreen) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    if (R_FAILED(HIDMapper_SetMapping(configscreen, false))) return -1;
+
+    data->isPrint = false;
+    data->info_flag = 16;
+    data->scroll = 0;
+
+    return 1;
+}
+
+static HIDFUNC(HIDLoopInfoAction) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    switch (data->info_flag) {
+    case 0:
+        Player_PrintChannel(&g_player, &data->scroll, &data->subscroll);
+        break;
+    case 1:
+        if (!data->isPrint) {
+            Player_PrintInstruments(&g_player, &data->scroll, data->subscroll);
+            data->isPrint = true;
+        }
+        Player_PrintChannelInstruments(&g_player, &data->subscroll);
+        break;
+    case 2:
+        if (!data->isPrint) {
+            Player_PrintSamples(&g_player, &data->scroll);
+            data->isPrint = true;
+        }
+        break;
+    case 3:
+        if (!data->isPrint) {
+            Player_ClearTop(&g_player);
+            printhelp();
+            data->isPrint = true;
+        }
+    case 8:
+        if (!data->isPrint) {
+            Player_ClearTop(&g_player);
+            Player_PrintPlaylist(&g_player, &data->scroll, &data->subscroll);
+            data->isPrint = true;
+        }
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+static HIDFUNC(HIDLoopConfigAction) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    // todo, do config control actions
+
+    if (!data->isPrint) {
+        Player_ClearTop(&g_player);
+        Player_ConfigsScreen(&g_player, &data->subscroll);
+        data->isPrint = true;
+    }
+
+    return 0;
+}
+
+static void printhelp() {
     printf("GREETZ TO ALL TUNE MAKERS!\n");
     printf("=CONTROLS=\n");
     printf("A = change screens\n");
@@ -37,26 +242,58 @@ void printhelp() {
     printf("using libxmp v%s\n", xmp_version);
 }
 
-int main(int argc, char *argv[]) {
-    uint8_t info_flag = 0b00000000;
+static HIDBind infoscreen[] = {
+    {0, true, &HIDLoopInfoAction, NULL},
+    {KEY_START, true, &ButtonStop, NULL},
+    {KEY_SELECT, true, &ButtonPause, NULL},
+    {KEY_UP, true, &ButtonUpScroll, NULL},
+    {KEY_DOWN, true, &ButtonDownScroll, NULL},
+    {KEY_RIGHT, true, &ButtonNextSong, NULL},
+    {KEY_LEFT, true, &ButtonPrevSong, NULL},
+    {KEY_Y, true, &ButtonConfigScreen, NULL},
+    {KEY_A, true, &ButtonNextInfoScreen, NULL},
+    {KEY_R, true, &ButtonPlaylistScreen, NULL},
+    {HIDBINDNULL}
+};
 
+static HIDBind configscreen[] = {
+    {0, true, &HIDLoopConfigAction, NULL},
+    {KEY_START, true, &ButtonStop, NULL},
+    {KEY_SELECT, true, &ButtonPause, NULL},
+    {KEY_UP, true, &ButtonUpScroll, NULL},
+    {KEY_DOWN, true, &ButtonDownScroll, NULL},
+    {KEY_Y, true, &ButtonConfigSaveAndExit, NULL},
+    {HIDBINDNULL}
+};
+
+int main(int argc, char *argv[]) {
     if (Player_Init(&g_player))
         return 0;
 
-    int scroll = 0;
-    int subscroll = 0;
     //uint64_t timer_cnt = 0;
     // Main loop
-    uint64_t first = 0;
-    bool isPrint = false;
 
-    while (aptMainLoop()) {
-        if (g_player.terminate_flag) {
-            break;
-        }  // Break to exit.
+    main_loop_data data = {0, 0, 0, 0b00000000, false};
+
+    infoscreen[0].arg = configscreen[0].arg = (void*)&data;
+    infoscreen[3].arg = configscreen[3].arg = (void*)&data;
+    infoscreen[4].arg = configscreen[4].arg = (void*)&data;
+    infoscreen[5].arg = (void*)&data;
+    infoscreen[6].arg = (void*)&data;
+    infoscreen[7].arg = (void*)&data;
+    infoscreen[8].arg = (void*)&data;
+    infoscreen[9].arg = (void*)&data;
+    configscreen[5].arg = (void*)&data;
+
+    if (R_FAILED(HIDMapper_SetMapping(infoscreen, false))) {
+        printf("HID Fail.\n");
+        g_player.terminate_flag = true;
+    }
+
+    while (aptMainLoop() && !g_player.terminate_flag) {
         gspWaitForVBlank();
         gfxSwapBuffers();
-        first = svcGetSystemTick();
+        data.first = svcGetSystemTick();
         // Check loop cnt
         if (g_player.playerConfig.loopcheck >= 0) {
             if (g_player.finfo.loop_count > g_player.playerConfig.loopcheck) {
@@ -71,152 +308,19 @@ int main(int argc, char *argv[]) {
                 //_debug_pause();
                 Player_ClearConsoles(&g_player);
                 g_player.render_time = g_player.screen_time = 0;
-                first = svcGetSystemTick();
-                scroll = 0;
+                data.first = svcGetSystemTick();
+                data.scroll = 0;
             }
         }
 
         Player_PrintGeneric(&g_player);
-        switch (info_flag) {
-            case 1:
-                if (!isPrint) {
-                    Player_PrintInstruments(&g_player, &scroll, subscroll);
-                    isPrint = true;
-                }
-                Player_PrintChannelInstruments(&g_player, &subscroll);
-                break;
-            case 2:
-                if (!isPrint) {
-                    Player_PrintSamples(&g_player, &scroll);
-                    isPrint = true;
-                }
-                break;
-            case 3:
-                if (!isPrint) {
-                    Player_SelectTop(&g_player);
-                    printhelp();
-                    isPrint = true;
-                }
-                break;
-            case 8:
-                if (!isPrint) {
-                    //Player_SelectTop(&g_player);
-                    //consoleClear(); // This'll stop garbage
-                    Player_PrintPlaylist(&g_player, &scroll, &subscroll);
-                    isPrint = true;
-                }
-                break;
-            case 16:
-                if (!isPrint) {
-                    Player_SelectTop(&g_player);
-                    Player_ConfigsScreen(&g_player, &subscroll);
-                    isPrint = true;
-                }
-                break;
-            default:
-                Player_PrintChannel(&g_player, &scroll, &subscroll);
-        }
 
-        hidScanInput();
+        if (R_FAILED(HIDMapper_RunFrame())) break;
 
-        // Your code goes here
-        uint32_t kDown = hidKeysDown();
-        uint32_t kHeld = hidKeysHeld();
-
-        if (kDown & KEY_R) {
-            Player_ClearConsoles(&g_player);
-            isPrint = false;
-            info_flag = 0b1000;
-        }
-
-        if (kDown & KEY_A) {
-            Player_ClearConsoles(&g_player);
-            isPrint = false;
-            if (++info_flag > 3) {
-                // 012012012
-                info_flag = 0;
-            }
-        }
-        /*
-        if (kDown & KEY_B) {
-            Player_ClearConsoles(&g_player);
-            isPrint = false;
-            info_flag = 0b100;
-        }
-        if (kDown & KEY_X) {
-            Player_ClearConsoles(&g_player);
-            isPrint = false;
-            info_flag = 0b001;
-        }
-        */
-        if (kDown & KEY_Y) {
-            Player_ClearConsoles(&g_player);
-            isPrint = false;
-            info_flag = 16;
-        }
-
-        if (kDown & KEY_SELECT) {
-            Player_TogglePause(&g_player);
-        }
-
-        if (info_flag != 16) {
-            if (kDown & KEY_DOWN) {  //|| (kHeld & KEY_DOWN && timer_cnt >= 50)) {
-                isPrint = false;
-                if (kHeld & KEY_L) {
-                    subscroll++;
-                } else {
-                    scroll++;
-                }
-            }
-
-            if (kDown & KEY_UP) {  //|| (kHeld & KEY_UP && timer_cnt >= 50)) {
-                isPrint = false;
-                if (kHeld & KEY_L)
-                    if (subscroll != 0 && subscroll >= 0) subscroll--;
-                if (scroll != 0 && scroll >= 0) scroll--;
-            }
-
-            if (kDown & KEY_RIGHT) {
-                if (kHeld & KEY_L) {
-                    Player_NextSubSong(&g_player);
-                } else {
-                    Player_ClearConsoles(&g_player);
-                    gotoxy(0, 0);
-                    if (Player_NextSong(&g_player) != 0) {
-                        printf("Error on loadSong !!!?\n");
-                        break;
-                    };
-                    //_debug_pause();
-                    Player_ClearConsoles(&g_player);
-                    g_player.render_time = g_player.screen_time = 0;
-                    first = svcGetSystemTick();
-                    scroll = 0;
-                    isPrint = false;
-                }
-            }
-
-            if (kDown & KEY_LEFT) {
-                if (kHeld & KEY_L) {
-                    Player_PrevSubSong(&g_player);
-                } else {
-                    Player_ClearConsoles(&g_player);
-                    gotoxy(0, 0);
-                    if (Player_PrevSong(&g_player) != 0) {
-                        printf("Error on loadSong !!!?\n");
-                        break;
-                    };
-                    Player_ClearConsoles(&g_player);
-                    g_player.render_time = g_player.screen_time = 0;
-                    first = svcGetSystemTick();
-                    scroll = 0;
-                    isPrint = false;
-                }
-            }
-        }
-        if (kDown & KEY_START) break;  // break in order to return to hbmenu
-        g_player.screen_time = svcGetSystemTick() - first;
+        g_player.screen_time = svcGetSystemTick() - data.first;
     }
 
+    HIDMapper_ClearMapping();
     Player_Exit(&g_player);
     return 0;
 }
