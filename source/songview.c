@@ -52,7 +52,7 @@ void show_playlist(LinkedList *ll, LLNode *current,
         ind = ' ';
         if (i == toscroll && isuind) ind = '^';  // There is a lot more to write
         if (i == chmax - 1 && isdind) ind = 'v';
-        printf("%s%2d\e[0m: %-40.40s %c\n",i==*subscroll?"\e[36;1m":"\e[0m", i, cur->track_path, ind);
+        printf("%s%2d\e[0m: %-40.40s %c\n", i == *subscroll ? "\e[36;1m" : "\e[0m", i, cur->track_path, ind);
         cur = cur->next;
         if (cur == NULL) break;
     }

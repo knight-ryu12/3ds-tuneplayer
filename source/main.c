@@ -6,11 +6,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <xmp.h>
+#include "hidmapper.h"
 #include "player.h"
 #include "song_info.h"
 #include "songhandler.h"
 #include "songview.h"
-#include "hidmapper.h"
 #define gotoxy(x, y) printf("\033[%d;%dH", (x), (y))
 
 // 3ds-tuneplayer backed by libxmp (CMatsuoka, thx), by Chromaryu
@@ -88,7 +88,8 @@ static HIDFUNC(ButtonUpScroll) {
     data->isPrint = false;
     if (frame.held & KEY_L) {
         if (data->subscroll > 0) data->subscroll--;
-    } else if (data->scroll > 0) data->scroll--;
+    } else if (data->scroll > 0)
+        data->scroll--;
     return 0;
 }
 
@@ -177,36 +178,36 @@ static HIDFUNC(HIDLoopInfoAction) {
     main_loop_data* data = (main_loop_data*)arg;
 
     switch (data->info_flag) {
-    case 0:
-        Player_PrintChannel(&g_player, &data->scroll, &data->subscroll);
-        break;
-    case 1:
-        if (!data->isPrint) {
-            Player_PrintInstruments(&g_player, &data->scroll, data->subscroll);
-            data->isPrint = true;
-        }
-        Player_PrintChannelInstruments(&g_player, &data->subscroll);
-        break;
-    case 2:
-        if (!data->isPrint) {
-            Player_PrintSamples(&g_player, &data->scroll);
-            data->isPrint = true;
-        }
-        break;
-    case 3:
-        if (!data->isPrint) {
-            Player_ClearTop(&g_player);
-            printhelp();
-            data->isPrint = true;
-        }
-    case 8:
-        if (!data->isPrint) {
-            Player_ClearTop(&g_player);
-            Player_PrintPlaylist(&g_player, &data->scroll, &data->subscroll);
-            data->isPrint = true;
-        }
-    default:
-        break;
+        case 0:
+            Player_PrintChannel(&g_player, &data->scroll, &data->subscroll);
+            break;
+        case 1:
+            if (!data->isPrint) {
+                Player_PrintInstruments(&g_player, &data->scroll, data->subscroll);
+                data->isPrint = true;
+            }
+            Player_PrintChannelInstruments(&g_player, &data->subscroll);
+            break;
+        case 2:
+            if (!data->isPrint) {
+                Player_PrintSamples(&g_player, &data->scroll);
+                data->isPrint = true;
+            }
+            break;
+        case 3:
+            if (!data->isPrint) {
+                Player_ClearTop(&g_player);
+                printhelp();
+                data->isPrint = true;
+            }
+        case 8:
+            if (!data->isPrint) {
+                Player_ClearTop(&g_player);
+                Player_PrintPlaylist(&g_player, &data->scroll, &data->subscroll);
+                data->isPrint = true;
+            }
+        default:
+            break;
     }
 
     return 0;
@@ -253,8 +254,7 @@ static HIDBind infoscreen[] = {
     {KEY_Y, true, &ButtonConfigScreen, NULL},
     {KEY_A, true, &ButtonNextInfoScreen, NULL},
     {KEY_R, true, &ButtonPlaylistScreen, NULL},
-    {HIDBINDNULL}
-};
+    {HIDBINDNULL}};
 
 static HIDBind configscreen[] = {
     {0, true, &HIDLoopConfigAction, NULL},
@@ -263,10 +263,9 @@ static HIDBind configscreen[] = {
     {KEY_UP, true, &ButtonUpScroll, NULL},
     {KEY_DOWN, true, &ButtonDownScroll, NULL},
     {KEY_Y, true, &ButtonConfigSaveAndExit, NULL},
-    {HIDBINDNULL}
-};
+    {HIDBINDNULL}};
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     if (Player_Init(&g_player))
         return 0;
 

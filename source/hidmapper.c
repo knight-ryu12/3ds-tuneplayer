@@ -1,12 +1,12 @@
+#include "hidmapper.h"
 #include <3ds.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hidmapper.h"
 
 static const HIDBind emptybind[] = {{HIDBINDNULL}};
 static const HIDBind* active = emptybind;
 static bool mapallocated = false;
-static RecursiveLock hidmaplock = {1, 0, 0}; //global, so preinitializing. Wished ctrulib would give an initializer macro like pthread_mutex_t has
+static RecursiveLock hidmaplock = {1, 0, 0};  //global, so preinitializing. Wished ctrulib would give an initializer macro like pthread_mutex_t has
 
 Result HIDMapper_SetMapping(const HIDBind* binding, bool copy) {
     if (!binding)
@@ -38,7 +38,7 @@ Result HIDMapper_SetMapping(const HIDBind* binding, bool copy) {
         return 0;
     }
 
-    HIDBind* newactive = (HIDBind*)malloc(sizeof(HIDBind) * (count+1));
+    HIDBind* newactive = (HIDBind*)malloc(sizeof(HIDBind) * (count + 1));
 
     if (!newactive) {
         RecursiveLock_Unlock(&hidmaplock);
@@ -92,7 +92,8 @@ Result HIDMapper_RunFrame() {
         if (ret) {
             if (ret > 0)
                 res = MAKERESULT(RL_INFO, RS_STATUSCHANGED, RM_APPLICATION, RD_CANCEL_REQUESTED);
-            else res = MAKERESULT(RL_FATAL, RS_INVALIDSTATE, RM_APPLICATION, RD_CANCEL_REQUESTED);
+            else
+                res = MAKERESULT(RL_FATAL, RS_INVALIDSTATE, RM_APPLICATION, RD_CANCEL_REQUESTED);
             break;
         }
 

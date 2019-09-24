@@ -1,11 +1,11 @@
+#include "sndthr.h"
 #include <3ds.h>
 #include <stdio.h>
 #include <string.h>
 #include <xmp.h>
-#include "sndthr.h"
 #include "player.h"
 
-#define add_masked(x,y) (((x) + (y)) & 0x7)
+#define add_masked(x, y) (((x) + (y)) & 0x7)
 
 Result setup_ndsp() {
     Result res;
@@ -95,7 +95,7 @@ void soundThread(void *arg) {
 */
 
 void soundThread(void *arg) {
-    Player* player = (Player*)arg;
+    Player *player = (Player *)arg;
     uint32_t BLOCK = player->block_size;
 
     int cur_wvbuf = 0;
