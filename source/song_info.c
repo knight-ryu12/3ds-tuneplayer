@@ -41,32 +41,32 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
     write(STDOUT_FILENO, infobuf, cur > 256 ? 256 : cur);
 }
 
-void set_effect_memory(int ch, uint8_t fxp, uint8_t fxt, uint8_t *ofxt,
-                       uint8_t *ofxp) {
+void set_effect_memory(int ch, uint8_t fxp, uint8_t *ofxp) {
     ofxp[ch] = fxp;
-    ofxt[ch] = fxt;
 }
 
-uint8_t get_effect_memory(int ch, uint8_t *ofxt, uint8_t *ofxp) {
+uint8_t get_effect_memory(int ch, uint8_t *ofxp) {
     return ofxp[ch];
 }
 
 void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
               uint8_t fxp, bool isFT, bool isf2) {
+    //TODO: please do better solution to avoid calling handleFX twice.
+
     char _arg1[8];
     const char *p_arg1 = "-----";
     bool isEFFM = false;
     //bool isNNA = false;
     uint8_t _fxp = fxp;
-    // ofxt[ch] = fxt;
     bool isBufferMem = handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);
     if (isBufferMem) {
         if (fxp == 0) {
-            _fxp = get_effect_memory(ch, ofxt, ofxp);
+            _fxp = get_effect_memory(ch, ofxp);
             isEFFM = true;
+            handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);  // calling once again with updated information.
         } else {
             //isNNA = true;
-            set_effect_memory(ch, fxp, fxt, ofxt, ofxp);
+            set_effect_memory(ch, fxp, ofxp);
         }
     }
 

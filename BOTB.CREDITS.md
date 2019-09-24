@@ -8,7 +8,7 @@
 - Secret Glade
 - Opposing Centuries
 - wild4real
-- Seomadan Uplink
+- Seomadan Uplink (UNSTRIPPED VER!)
 
 ### KungFuFurby
 - Dream of Tay-Toh Day-Tah

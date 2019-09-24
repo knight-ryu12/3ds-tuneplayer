@@ -56,7 +56,18 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
             break;
         case 0xa:
         case 0xa4:
-            if (isFT) goto ft2;
+            if (isFT) {
+                isBufferMem = true;
+                if (l == 0 && h > 0)  // Up
+                    *p_arg1 = "VOLsU";
+                else if (h == 0 && l > 0)  // Down
+                    *p_arg1 = "VOLsD";
+                else {
+                    snprintf(_arg1, 6, "A%02X%02X", fxp, fxt);
+                    *p_arg1 = _arg1;
+                }
+                break;
+            }
             // S3M/IT
             if (l == 0xF && h != 0)
                 *p_arg1 = "VOLsU";
@@ -68,13 +79,6 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
                 *p_arg1 = "VOLsU";
             else if (h == 0xf && l == 0xf)  // ???
                 *p_arg1 = "VOLsS";
-            break;
-        ft2:
-            isBufferMem = true;
-            if (l == 0 && h > 0)  // Up
-                *p_arg1 = "VOLsU";
-            else if (h == 0 && l > 0)  // Down
-                *p_arg1 = "VOLsD";
             break;
 
         case 0xb:
@@ -89,8 +93,6 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
         case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
                     // it down
             switch (h) {
-                default:
-                    break;
                 case 0x1:
                     isBufferMem = true;
                     *p_arg1 = "EPRtU";
@@ -114,6 +116,11 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
                     else
                         *p_arg1 = "PTLpG";
                     break;
+
+                case 0x8:
+                    // No Buffer mem
+                    *p_arg1 = "ESEtP";
+                    break;
                 case 0xa:
                     isBufferMem = true;
                     *p_arg1 = "EFVsU";
@@ -128,6 +135,12 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
                 case 0xd:
                     *p_arg1 = "EDElY";
                     break;
+                case 0xe:
+                    *p_arg1 = "EPDlY";
+                    break;
+                default:
+                    snprintf(_arg1, 6, "??E%02X", fxt);
+                    *p_arg1 = _arg1;
             }
             break;
 

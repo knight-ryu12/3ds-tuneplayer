@@ -1,5 +1,6 @@
 #pragma once
-
+#include <3ds.h>
+#include <stdint.h>
 typedef struct {
     uint8_t version;
     uint8_t debugmode;  // 1= Enable Debug
