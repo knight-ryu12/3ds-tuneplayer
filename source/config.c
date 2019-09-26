@@ -14,8 +14,8 @@ static const Extdata_Path _ext = {.type = MEDIATYPE_SD, .extdataId = FSA_PATH};
 static const FS_Path _extpath = {PATH_BINARY, sizeof(_ext), &_ext};
 
 // need to make function to set these
-static uint8_t* _smdc_data = NULL;
-static uint32_t _smdc_size = 0;
+static uint8_t* _smdh_data = NULL;
+static uint32_t _smdh_size = 0;
 
 static Result PlayerConfig_GetConfig(PlayerConfig* config, Handle file) {
     uint32_t readsz;
@@ -32,15 +32,15 @@ static Result PlayerConfig_GetConfig(PlayerConfig* config, Handle file) {
         default_pc.loopcheck = config->loopcheck;
         uint32_t writesz = 0;
         r = FSFILE_Write(file, &writesz, 0, &default_pc, sizeof(default_pc), 0);
-#ifdef DEBUG
-        printf("FSFILE_FW %08lx, %ld\n", r, writesz);
-#endif
         *config = default_pc;
         if (R_SUCCEEDED(r)) {
             printf("Done.\n");
         } else {
             printf("Fail.\n");
         }
+#ifdef DEBUG
+        printf("FSFILE_FW %08lx, %ld\n", r, writesz);
+#endif
     }
     FSFILE_Close(file);
     return r;
@@ -71,7 +71,7 @@ Result PlayerConfig_Save(PlayerConfig* config) {
 
 Result PlayerConfig_EnsuredLoad(PlayerConfig* config) {
     FS_Archive extarc;
-    Result r = FSHelp_EnsuredExtdataMount(&extarc, FSA_PATH, MEDIATYPE_SD, 1, 2, 131072, _smdc_size, _smdc_data);
+    Result r = FSHelp_EnsuredExtdataMount(&extarc, FSA_PATH, MEDIATYPE_SD, 1, 2, 131072, _smdh_size, _smdh_data);
 #ifdef DEBUG
     printf("FSUSER_OA %08lx\n", r);
 #endif

@@ -238,7 +238,7 @@ static void printhelp() {
     printf("Select = Pause\n");
     printf("\n");
     printf("Thanks to all the people who helped me in different consoles\n");
-    //printf("");
+    printf("See credit file for seeing credits included in ROMFS.\n");
     printf("\n3ds-tuneplayer made by Chromaryu\n");
     printf("using libxmp v%s\n", xmp_version);
 }
