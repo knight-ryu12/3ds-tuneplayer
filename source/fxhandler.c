@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <xmp.h>
 
+// Note to self; read OpenCubicPlayer sourcecode.
+
 bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool isFT) {
     bool isBufferMem = false;
     uint8_t h, l;
@@ -13,25 +15,25 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
     l = fxp & 0xF;
     switch (fxt) {
         case 0:
-        case 0xb4:
+        case 0xb4:       // MOD/XM 0xy, IT/S3M Jxy
             if (!fxp) {  // need to be real, not fake one
                 break;
             }
             *p_arg1 = "ARPeG";
             break;
-        case 1:
+        case 1:  // 1xx Fxx // But when FFx, it FINELY, FEx EXTRA FINE...????
             isBufferMem = true;
             *p_arg1 = "PORtU";
             break;
-        case 2:
+        case 2:  // 2xx Exx // But when EFx, it FINELY, EEx EXTRA FINE...???? I don't get it anymore.
             isBufferMem = true;
             *p_arg1 = "PORtD";
             break;
-        case 3:
+        case 3:  // 3xx Gxx
             isBufferMem = true;
             *p_arg1 = "TPOrT";
             break;
-        case 4:
+        case 4:  // 4xy Hxy
             isBufferMem = true;
             *p_arg1 = "VIBrT";
             break;
@@ -149,7 +151,8 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
             *p_arg1 = "SPDsT";
             break;
 
-        case 0x10:
+        case 0x10:  // Hxy
+            isBufferMem = true;
             *p_arg1 = "GVOlS";
             break;
 
@@ -160,6 +163,19 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
 
         case 0x15:
             *p_arg1 = "EVPsS";
+            break;
+
+        case 0x19:
+            isBufferMem = true;
+            *p_arg1 = "PANsL";
+            break;
+        case 0xb5:
+            *p_arg1 = "VPNsL";
+            break;
+
+        case 0x1d:
+            isBufferMem = true;
+            *p_arg1 = "TREmR";
             break;
 
         case 0x1b:
@@ -174,11 +190,16 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
         case 0x87:
             *p_arg1 = "SETtP";
             break;
-            // Btw; Txx effect is kinda special
+
         case 0x80:
             *p_arg1 = "TRLvL";
             break;
-
+        case 0xc2:
+            *p_arg1 = "VVLsU";
+            break;
+        case 0xc3:
+            *p_arg1 = "VVLsD";
+            break;
         default:
             snprintf(_arg1, 6, "???%02X", fxt);
             *p_arg1 = _arg1;

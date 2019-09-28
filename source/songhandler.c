@@ -14,15 +14,15 @@
 // on over 2MB song, this value will be used
 
 static uint8_t *buffer_ptr = NULL;
-static uint32_t buffer_sz;
+static uint32_t buffer_sz = 0;
 
-int initXMP(char *path, xmp_context c, struct xmp_module_info *mi) {
+/*int initXMP(char *path, xmp_context c, struct xmp_module_info *mi) {
     if (xmp_load_module(c, path) != 0) return 1;
     xmp_get_module_info(c, mi);
     xmp_set_player(c, XMP_PLAYER_INTERP, XMP_INTERP_LINEAR);
     xmp_set_player(c, XMP_PLAYER_VOICES, 256);
     return 0;
-}
+}*/
 
 int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT, bool *released) {
     FILE *fp = NULL;
@@ -116,7 +116,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     return 0;
 }
 
-int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT) {
+/*int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, int *isFT) {
     printf("Loading....\n");
     struct xmp_test_info ti;
     printf("%s\n", path);
@@ -140,7 +140,7 @@ int loadSong(xmp_context c, struct xmp_module_info *mi, char *path, char *dir, i
     //svcSleepThread(150000000);  // wait 1.s
     xmp_start_player(c, SAMPLE_RATE, 0);
     return 0;
-}
+}*/
 
 uint32_t searchsong(const char *searchPath, LinkedList *list) {
     uint32_t count = 0;

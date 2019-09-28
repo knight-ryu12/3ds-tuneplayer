@@ -31,6 +31,7 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
     snprintf(timebuf, 22, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
     gotoxy(0, 0);
+    // TODO: write whatever the place, maybe?
     cur += snprintf(infobuf, 256, "Pos[%02X/%02X] Pat[%02X/%02X] Row[%02X/%02X]\nSpd%1X BPM%3d LC%1d Ss%1d(%1d)/%1d\nChn[%02X/%02X] %s\n",
                     fi->pos, mi->mod->len - 1, fi->pattern, mi->mod->pat - 1, fi->row, fi->num_rows - 1,
                     fi->speed, fi->bpm, fi->loop_count, cur_subsong, fi->sequence, mi->num_sequences - 1,

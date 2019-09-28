@@ -96,7 +96,11 @@ void Player_ConfigsScreen(Player* player, int* subscroll) {
     int configuable = 3;
     printf("=Config Screen=\n");
     printf("Config version: %d\n", player->playerConfig.version);
-    printf("Loop Count: %d\n", player->playerConfig.loopcheck);
+
+    printf("\n");
+
+    printf("%sLoop Count: %d\n", subscroll == 0 ? "\e[36m" : "\e[0m", player->playerConfig.loopcheck);  //Subscroll ver 0
+
     //Scroll range 3
     //TODO: please fix
 }
