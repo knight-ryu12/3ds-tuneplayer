@@ -294,7 +294,7 @@ int main(int argc, char* argv[]) {
         gfxSwapBuffers();
         data.first = svcGetSystemTick();
         // Check loop cnt
-        if (g_player.playerConfig.loopcheck >= 0) {
+        if (g_player.playerConfig.loopcheck > 0) {
             if (g_player.finfo.loop_count > g_player.playerConfig.loopcheck) {
                 Player_ClearConsoles(&g_player);
                 gotoxy(0, 0);

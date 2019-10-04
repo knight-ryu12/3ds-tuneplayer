@@ -8,6 +8,61 @@
 
 // Note to self; read OpenCubicPlayer sourcecode.
 
+bool handleSubFX(uint8_t fxt, uint8_t h, uint8_t l, const char** p_arg1, char* _arg1, bool isFT) {
+    bool isBufferMem = false;
+    switch (h) {
+        case 0x1:
+            isBufferMem = true;
+            *p_arg1 = "EPRtU";
+            break;
+        case 0x2:
+            isBufferMem = true;
+            *p_arg1 = "EPRtD";
+            break;
+        case 0x3:
+            // Not supported widely...?
+            break;
+        case 0x4:
+            *p_arg1 = "STVwF";
+            break;
+        case 0x5:
+            *p_arg1 = "STFtV";
+            break;
+        case 0x6:  //Pattern loop is the special thing...
+            if (l == 0)
+                *p_arg1 = "PTLpS";
+            else
+                *p_arg1 = "PTLpG";
+            break;
+
+        case 0x8:
+            // No Buffer mem
+            *p_arg1 = "ESEtP";
+            break;
+        case 0xa:
+            isBufferMem = true;
+            *p_arg1 = "EFVsU";
+            break;
+        case 0xb:
+            isBufferMem = true;
+            *p_arg1 = "EFVsD";
+            break;
+        case 0xc:
+            *p_arg1 = "ENCuT";
+            break;
+        case 0xd:
+            *p_arg1 = "EDElY";
+            break;
+        case 0xe:
+            *p_arg1 = "EPDlY";
+            break;
+        default:
+            snprintf(_arg1, 6, "??E%02X", fxt);
+            *p_arg1 = _arg1;
+    }
+    return isBufferMem;
+}
+
 bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool isFT) {
     bool isBufferMem = false;
     uint8_t h, l;
@@ -94,56 +149,8 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
             break;
         case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
                     // it down
-            switch (h) {
-                case 0x1:
-                    isBufferMem = true;
-                    *p_arg1 = "EPRtU";
-                    break;
-                case 0x2:
-                    isBufferMem = true;
-                    *p_arg1 = "EPRtD";
-                    break;
-                case 0x3:
-                    // Not supported widely...?
-                    break;
-                case 0x4:
-                    *p_arg1 = "STVwF";
-                    break;
-                case 0x5:
-                    *p_arg1 = "STFtV";
-                    break;
-                case 0x6:  //Pattern loop is the special thing...
-                    if (l == 0)
-                        *p_arg1 = "PTLpS";
-                    else
-                        *p_arg1 = "PTLpG";
-                    break;
-
-                case 0x8:
-                    // No Buffer mem
-                    *p_arg1 = "ESEtP";
-                    break;
-                case 0xa:
-                    isBufferMem = true;
-                    *p_arg1 = "EFVsU";
-                    break;
-                case 0xb:
-                    isBufferMem = true;
-                    *p_arg1 = "EFVsD";
-                    break;
-                case 0xc:
-                    *p_arg1 = "ENCuT";
-                    break;
-                case 0xd:
-                    *p_arg1 = "EDElY";
-                    break;
-                case 0xe:
-                    *p_arg1 = "EPDlY";
-                    break;
-                default:
-                    snprintf(_arg1, 6, "??E%02X", fxt);
-                    *p_arg1 = _arg1;
-            }
+            // TODO: Optimize the heck out of it.
+            isBufferMem = handleSubFX(fxt, h, l, p_arg1, _arg1, isFT);
             break;
 
         case 0xa3:
@@ -194,11 +201,17 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
         case 0x80:
             *p_arg1 = "TRLvL";
             break;
-        case 0xc2:
+        case 0xc0:
             *p_arg1 = "VVLsU";
             break;
-        case 0xc3:
+        case 0xc1:
             *p_arg1 = "VVLsD";
+            break;
+        case 0xc2:
+            *p_arg1 = "VVLfU";
+            break;
+        case 0xc3:
+            *p_arg1 = "VVLfD";
             break;
         default:
             snprintf(_arg1, 6, "???%02X", fxt);
