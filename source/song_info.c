@@ -20,26 +20,33 @@ static uint8_t old_fxt[256];
 static uint8_t old_fxp[256];
 static uint8_t old_f2t[256];
 static uint8_t old_f2p[256];
+static char timebuf[22];
+static char infobuf[256];
 extern Player g_player;
 
 void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int cur_subsong) {
     const float SYS_TICK = CPU_TICKS_PER_MSEC;  // seems like 3ds uses this clock no matter what
-    char timebuf[22];
-    char infobuf[256];
-    int cur = 0;
+    uint16_t cur = 256;                         // replenish buffer;
+
     snprintf(timebuf, 22, "%02d:%02d/%02d:%02d", fi->time / 1000 / 60, fi->time / 1000 % 60, fi->total_time / 1000 / 60, fi->total_time / 1000 % 60);
     consoleSelect(bot);
-    gotoxy(0, 0);
+    gotoxy(4, 0);
     // TODO: write whatever the place, maybe?
-    cur += snprintf(infobuf, 256, "Pos[%02X/%02X] Pat[%02X/%02X] Row[%02X/%02X]\nSpd%1X BPM%3d LC%1d Ss%1d(%1d)/%1d\nChn[%02X/%02X] %s\n",
+    cur += snprintf(infobuf, 256, "Pos[%02X/%02X] Pat[%02X/%02X] Row[%02X/%02X]\nSpd%1X BPM%3d LC%1d Ss%1d/%1d\nChn[%02X/%02X] %s\n",
                     fi->pos, mi->mod->len - 1, fi->pattern, mi->mod->pat - 1, fi->row, fi->num_rows - 1,
-                    fi->speed, fi->bpm, fi->loop_count, cur_subsong, fi->sequence, mi->num_sequences - 1,
+                    fi->speed, fi->bpm, fi->loop_count, cur_subsong, mi->num_sequences - 1,
                     fi->virt_used, fi->virt_channels, timebuf);
-    cur += snprintf(&infobuf[cur], (256 - cur) < 0 ? 0 : (256 - cur), "%s\n%s\n", mi->mod->name, mi->mod->type);
+    //cur += snprintf(&infobuf[cur], (256 - cur) < 0 ? 0 : (256 - cur), "%s\n%s\n", mi->mod->name, mi->mod->type); // maybe print once there
     cur += snprintf(&infobuf[cur], (256 - cur) < 0 ? 0 : (256 - cur), "RT%0.2fms ST%0.2fms MT%0.2fms     \n", g_player.render_time / SYS_TICK, g_player.screen_time / SYS_TICK, (g_player.render_time + g_player.screen_time) / SYS_TICK);
-    cur += snprintf(&infobuf[cur], (256 - cur) < 0 ? 0 : (256 - cur), "Status: %-8s\n", !g_player.play_sound ? "Paused" : "Playing");
+    cur += snprintf(&infobuf[cur], (256 - cur) < 0 ? 0 : (256 - cur), "%-8s", !g_player.play_sound ? "Paused" : "Playing");
     write(STDOUT_FILENO, infobuf, cur > 256 ? 256 : cur);
+}
+
+void show_title(struct xmp_module_info *mi, PrintConsole *bot) {
+    gotoxy(0, 0);
+    consoleSelect(bot);
+    printf("%s\n%s\n", mi->mod->name, mi->mod->type);
 }
 
 void set_effect_memory(int ch, uint8_t fxp, uint8_t *ofxp) {

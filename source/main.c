@@ -28,6 +28,7 @@ typedef struct {
     int subscroll;
     uint8_t info_flag;
     bool isPrint;
+    bool isBottomScreenPrint;
 } main_loop_data;
 
 static HIDBind infoscreen[];
@@ -57,6 +58,7 @@ static HIDFUNC(ButtonNextSong) {
         data->first = svcGetSystemTick();
         data->scroll = 0;
         data->isPrint = false;
+        data->isBottomScreenPrint = false;
     }
     return 1;
 }
@@ -78,6 +80,7 @@ static HIDFUNC(ButtonPrevSong) {
         data->first = svcGetSystemTick();
         data->scroll = 0;
         data->isPrint = false;
+        data->isBottomScreenPrint = false;
     }
     return 1;
 }
@@ -138,6 +141,7 @@ static HIDFUNC(ButtonConfigSaveAndExit) {
     if (R_FAILED(HIDMapper_SetMapping(infoscreen, false))) return -1;
 
     data->isPrint = false;
+    //data->isBottomScreenPrint = false;
     data->info_flag = 0;
     data->scroll = 0;
 
@@ -156,6 +160,7 @@ static HIDFUNC(ButtonPlaylistScreen) {
     }
 
     data->isPrint = false;
+    //data->isBottomScreenPrint = false;
     data->info_flag = 8;
     data->scroll = 0;
 
@@ -168,6 +173,7 @@ static HIDFUNC(ButtonConfigScreen) {
     if (R_FAILED(HIDMapper_SetMapping(configscreen, false))) return -1;
 
     data->isPrint = false;
+    data->isBottomScreenPrint = false;
     data->info_flag = 16;
     data->scroll = 0;
 
@@ -272,7 +278,7 @@ int main(int argc, char* argv[]) {
     //uint64_t timer_cnt = 0;
     // Main loop
 
-    main_loop_data data = {0, 0, 0, 0b00000000, false};
+    main_loop_data data = {0, 0, 0, 0b00000000, false, false};
 
     infoscreen[0].arg = configscreen[0].arg = (void*)&data;
     infoscreen[3].arg = configscreen[3].arg = (void*)&data;
@@ -307,11 +313,15 @@ int main(int argc, char* argv[]) {
                 //_debug_pause();
                 Player_ClearConsoles(&g_player);
                 g_player.render_time = g_player.screen_time = 0;
+                data.isBottomScreenPrint = false;
                 data.first = svcGetSystemTick();
                 data.scroll = 0;
             }
         }
-
+        if (!data.isBottomScreenPrint) {
+            Player_PrintTitle(&g_player);
+            data.isBottomScreenPrint = true;
+        }
         Player_PrintGeneric(&g_player);
 
         if (R_FAILED(HIDMapper_RunFrame())) break;

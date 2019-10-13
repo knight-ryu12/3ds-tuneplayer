@@ -153,6 +153,10 @@ static inline void Player_PrintGeneric(Player* player) {
     show_generic_info(&player->finfo, &player->minfo, &player->top, &player->bot, player->subsong);
 }
 
+static inline void Player_PrintTitle(Player* player) {
+    show_title(&player->minfo, &player->bot);
+}
+
 static inline void Player_PrintInstruments(Player* player, int* scroll, int subscroll) {
     show_instrument_info(&player->minfo, &player->top, &player->bot, scroll, subscroll);
 }
