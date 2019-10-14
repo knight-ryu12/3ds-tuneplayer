@@ -13,7 +13,7 @@ Result setup_ndsp() {
     if (R_FAILED(res)) return res;
 
     ndspChnReset(CHANNEL);
-    ndspChnSetInterp(CHANNEL, NDSP_INTERP_NONE);
+    ndspChnSetInterp(CHANNEL, NDSP_INTERP_LINEAR);
     ndspSetClippingMode(NDSP_CLIP_NORMAL);  //???
     ndspChnSetFormat(CHANNEL, NDSP_FORMAT_STEREO_PCM16);
     ndspSetOutputMode(NDSP_OUTPUT_STEREO);

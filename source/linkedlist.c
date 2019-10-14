@@ -44,6 +44,7 @@ LLNode* create_node(const char* path, const char* dir) {
     LLNode* node = (LLNode*)malloc(sizeof(LLNode));
     node->track_path = strdup(path);
     node->directory = strdup(dir);
+
     for (unsigned i = 0; i < NODE_QUIRKS_AMOUNT; ++i)
         node->track_quirk[i] = 0;
     node->prev = NULL;

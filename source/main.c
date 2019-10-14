@@ -129,7 +129,7 @@ static HIDFUNC(ButtonNextInfoScreen) {
         // 012012012
         data->info_flag = 0;
     }
-
+    data->isBottomScreenPrint = false;
     return ret;
 }
 
@@ -141,7 +141,7 @@ static HIDFUNC(ButtonConfigSaveAndExit) {
     if (R_FAILED(HIDMapper_SetMapping(infoscreen, false))) return -1;
 
     data->isPrint = false;
-    //data->isBottomScreenPrint = false;
+    data->isBottomScreenPrint = false;
     data->info_flag = 0;
     data->scroll = 0;
 
@@ -160,7 +160,7 @@ static HIDFUNC(ButtonPlaylistScreen) {
     }
 
     data->isPrint = false;
-    //data->isBottomScreenPrint = false;
+    data->isBottomScreenPrint = false;
     data->info_flag = 8;
     data->scroll = 0;
 
