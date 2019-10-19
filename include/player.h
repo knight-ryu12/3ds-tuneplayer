@@ -173,7 +173,7 @@ static inline void Player_PrintPlaylist(Player* player, int* scroll, int* subscr
     show_playlist(&player->ll, player->current_song, &player->top, &player->bot, scroll, subscroll);
 }
 
-static inline void Player_PrintChannel(Player* player, int* scroll, int* subscroll) {
-    show_channel_info(&player->finfo, &player->minfo, &player->top, &player->bot, scroll, player->current_isFT, *subscroll);  // Fall back
+static inline void Player_PrintChannel(Player* player, int* scroll, int* subscroll, int mode) {
+    show_channel_info(&player->finfo, &player->minfo, &player->top, &player->bot, scroll, player->current_isFT, *subscroll, mode);  // Fall back
     show_channel_info_btm(&player->finfo, &player->minfo, &player->top, &player->bot, subscroll, player->current_isFT);
 }

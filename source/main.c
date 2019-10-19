@@ -185,22 +185,26 @@ static HIDFUNC(HIDLoopInfoAction) {
 
     switch (data->info_flag) {
         case 0:
-            Player_PrintChannel(&g_player, &data->scroll, &data->subscroll);
+            Player_PrintChannel(&g_player, &data->scroll, &data->subscroll, 0);
             break;
+
         case 1:
+            Player_PrintChannel(&g_player, &data->scroll, &data->subscroll, 1);
+            break;
+        case 2:
             if (!data->isPrint) {
                 Player_PrintInstruments(&g_player, &data->scroll, data->subscroll);
                 data->isPrint = true;
             }
             Player_PrintChannelInstruments(&g_player, &data->subscroll);
             break;
-        case 2:
+        case 3:
             if (!data->isPrint) {
                 Player_PrintSamples(&g_player, &data->scroll);
                 data->isPrint = true;
             }
             break;
-        case 3:
+        case 4:
             if (!data->isPrint) {
                 Player_ClearTop(&g_player);
                 printhelp();

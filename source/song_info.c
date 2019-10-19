@@ -89,7 +89,7 @@ void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
 }
 
 void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
-                       PrintConsole *top, PrintConsole *bot, int *f, int isFT, int hilight) {
+                       PrintConsole *top, PrintConsole *bot, int *f, int isFT, int hilight, int mode) {
     if (!g_player.play_sound) return;
     consoleSelect(top);
     gotoxy(0, 0);
@@ -139,10 +139,23 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         }
         parse_fx(i, fx_buf, old_fxp, ev->fxt, ev->fxp, isFT, false);
         parse_fx(i, fx2_buf, old_f2p, ev->f2t, ev->f2p, isFT, true);
-        printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02X%02X %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
-               ev->note != 0 ? '!' : ci->volume == 0 ? ' ' : 'G', ci->instrument, buf,
-               ci->pitchbend < 0 ? "-" : "+", ci->pitchbend < 0 ? -(unsigned)ci->pitchbend : ci->pitchbend,
-               ci->pan, ci->volume, ev->vol, fx_buf, fx2_buf, ind);
+        printf("%s%2d\e[0m:%c%02x %s", i == hilight ? "\e[36;1m" : "\e[0m", i,
+               ev->note != 0 ? '!' : ci->volume == 0 ? ' ' : 'G', ci->instrument, buf);
+        if (!mode)
+            printf("%s%-4x %02x %02X%02X %s %s%c\n",
+                   ci->pitchbend < 0 ? "-" : "+", ci->pitchbend < 0 ? -(unsigned)ci->pitchbend : ci->pitchbend,
+                   ci->pan, ci->volume, ev->vol, fx_buf, fx2_buf, ind);
+        else {
+            struct xmp_sample *xs = &xm->xxs[ci->sample];
+            printf("%-32.32s%c%c%c%c%c%c%c\n", xs->name,
+                   xs->flg & XMP_SAMPLE_16BIT ? 'W' : '-',
+                   xs->flg & XMP_SAMPLE_LOOP ? 'L' : '-',
+                   xs->flg & XMP_SAMPLE_LOOP_BIDIR ? 'B' : '-',
+                   xs->flg & XMP_SAMPLE_LOOP_REVERSE ? 'R' : '-',
+                   xs->flg & XMP_SAMPLE_LOOP_FULL ? 'F' : '-',
+                   xs->flg & XMP_SAMPLE_SYNTH ? 'S' : '-',
+                   ind);
+        }
     }
 }
 
