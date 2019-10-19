@@ -16,10 +16,8 @@ static char buf[16];
 static char fx_buf[32];
 static char fx2_buf[32];
 static uint8_t old_note[256];
-static uint8_t old_fxt[256];
-static uint8_t old_fxp[256];
-static uint8_t old_f2t[256];
-static uint8_t old_f2p[256];
+static uint8_t old_fxp[256][256];
+static uint8_t old_f2p[256][256];
 static char timebuf[22];
 static char infobuf[256];
 extern Player g_player;
@@ -53,15 +51,18 @@ void show_title(struct xmp_module_info *mi, PrintConsole *bot) {
     printf("%s\n%s\n", mi->mod->name, mi->mod->type);
 }
 
-void set_effect_memory(int ch, uint8_t fxp, uint8_t *ofxp) {
-    ofxp[ch] = fxp;
+// Seems like FT does have memory for each effects...
+// I doubt not saving each one is bad.
+
+void set_effect_memory(int ch, uint8_t fxp, uint8_t fxt, uint8_t ofxp[256][256]) {
+    ofxp[fxt][ch] = fxp;
 }
 
-uint8_t get_effect_memory(int ch, uint8_t *ofxp) {
-    return ofxp[ch];
+uint8_t get_effect_memory(int ch, uint8_t ofxp[256][256], uint8_t fxt) {
+    return ofxp[fxt][ch];
 }
 
-void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
+void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
               uint8_t fxp, bool isFT, bool isf2) {
     //TODO: please do better solution to avoid calling handleFX twice.
 
@@ -73,12 +74,12 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
     bool isBufferMem = handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);
     if (isBufferMem) {
         if (fxp == 0) {
-            _fxp = get_effect_memory(ch, ofxp);
+            _fxp = get_effect_memory(ch, ofxp, fxt);
             isEFFM = true;
             handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);  // calling once again with updated information.
         } else {
             //isNNA = true;
-            set_effect_memory(ch, fxp, ofxp);
+            set_effect_memory(ch, fxp, fxt, ofxp);
         }
     }
 
@@ -89,6 +90,7 @@ void parse_fx(int ch, char *buf, uint8_t *ofxt, uint8_t *ofxp, uint8_t fxt,
 
 void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                        PrintConsole *top, PrintConsole *bot, int *f, int isFT, int hilight) {
+    if (!g_player.play_sound) return;
     consoleSelect(top);
     gotoxy(0, 0);
     struct xmp_module *xm = mi->mod;
@@ -135,8 +137,8 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
             strcpy(buf, "---");
             old_note[i] = 0;
         }
-        parse_fx(i, fx_buf, old_fxt, old_fxp, ev->fxt, ev->fxp, isFT, false);
-        parse_fx(i, fx2_buf, old_f2t, old_f2p, ev->f2t, ev->f2p, isFT, true);
+        parse_fx(i, fx_buf, old_fxp, ev->fxt, ev->fxp, isFT, false);
+        parse_fx(i, fx2_buf, old_f2p, ev->f2t, ev->f2p, isFT, true);
         printf("%s%2d\e[0m:%c%02x %s%s%-4x %02x %02X%02X %s %s%c\n", i == hilight ? "\e[36;1m" : "\e[0m", i,
                ev->note != 0 ? '!' : ci->volume == 0 ? ' ' : 'G', ci->instrument, buf,
                ci->pitchbend < 0 ? "-" : "+", ci->pitchbend < 0 ? -(unsigned)ci->pitchbend : ci->pitchbend,

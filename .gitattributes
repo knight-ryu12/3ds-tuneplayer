@@ -1,0 +1,9 @@
+*.xm binary
+*.mod binary
+*.s3m binary
+*.it binary
+* text=auto
+
+*.c text
+*.h text
+
