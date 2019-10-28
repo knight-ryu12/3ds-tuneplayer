@@ -11,10 +11,14 @@
                 "C:/msys64/opt/devkitpro/portlibs/3ds/include/**",
                 "C:/msys64/opt/devkitpro/libctru/**",
                 "C:/msys64/opt/devkitpro/devkitARM/**",
-                "C:/msys64/opt/devkitpro/libctru/include/**"
+                "C:/msys64/opt/devkitpro/libctru/include/**",
+                "${workspaceFolder}/../msys64/opt/devkitpro/portlibs/3ds/include/**",
+                "${workspaceFolder}/../msys64/opt/devkitpro/libctru/**",
+                "${workspaceFolder}/../msys64/opt/devkitpro/devkitARM/**",
+                "${workspaceFolder}/../msys64/opt/devkitpro/libctru/include/**"
             ],
             "defines": [],
-            "compilerPath": "C:/msys64/opt/devkitpro/devkitARM/bin/arm-none-eabi-gcc.exe",
+            "compilerPath": "${workspaceFolder}/../msys64/opt/devkitpro/devkitARM/bin/arm-none-eabi-gcc.exe",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"
