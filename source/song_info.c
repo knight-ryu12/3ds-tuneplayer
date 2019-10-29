@@ -44,11 +44,10 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
     write(STDOUT_FILENO, infobuf, cur > 256 ? 256 : cur);
 }
 
-void show_title(struct xmp_module_info *mi, PrintConsole *bot) {
-    //TODO: add filename show when mi->mod->name is ""
+void show_title(struct xmp_module_info *mi, const char* filename, PrintConsole *bot) {
     gotoxy(0, 0);
     consoleSelect(bot);
-    printf("%s\n%s\n", mi->mod->name, mi->mod->type);
+    printf("%s\n%s\n", mi->mod->name[0] == 0 ? filename : mi->mod->name, mi->mod->type);
 }
 
 // Seems like FT does have memory for each effects...
@@ -64,8 +63,6 @@ uint8_t get_effect_memory(int ch, uint8_t ofxp[256][256], uint8_t fxt) {
 
 void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
               uint8_t fxp, bool isFT, bool isf2) {
-    //TODO: please do better solution to avoid calling handleFX twice.
-
     char _arg1[8];
     const char *p_arg1 = "-----";
     bool isEFFM = false;
@@ -76,7 +73,7 @@ void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
         if (fxp == 0) {
             _fxp = get_effect_memory(ch, ofxp, fxt);
             isEFFM = true;
-            handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);  // calling once again with updated information.
+            if(_fxp != 0) handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);  // calling once again with updated information if needed.
         } else {
             //isNNA = true;
             set_effect_memory(ch, fxp, fxt, ofxp);

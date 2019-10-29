@@ -154,7 +154,7 @@ static inline void Player_PrintGeneric(Player* player) {
 }
 
 static inline void Player_PrintTitle(Player* player) {
-    show_title(&player->minfo, &player->bot);
+    show_title(&player->minfo, player->current_song->track_path, &player->bot);
 }
 
 static inline void Player_PrintInstruments(Player* player, int* scroll, int subscroll) {
