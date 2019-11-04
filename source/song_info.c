@@ -44,7 +44,7 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
     write(STDOUT_FILENO, infobuf, cur > 256 ? 256 : cur);
 }
 
-void show_title(struct xmp_module_info *mi, const char* filename, PrintConsole *bot) {
+void show_title(struct xmp_module_info *mi, const char *filename, PrintConsole *bot) {
     gotoxy(0, 0);
     consoleSelect(bot);
     printf("%s\n%s\n", mi->mod->name[0] == 0 ? filename : mi->mod->name, mi->mod->type);
@@ -73,7 +73,7 @@ void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
         if (fxp == 0) {
             _fxp = get_effect_memory(ch, ofxp, fxt);
             isEFFM = true;
-            if(_fxp != 0) handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);  // calling once again with updated information if needed.
+            if (_fxp != 0) handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);  // calling once again with updated information if needed.
         } else {
             //isNNA = true;
             set_effect_memory(ch, fxp, fxt, ofxp);
@@ -251,7 +251,7 @@ void show_channel_instrument_info(struct xmp_frame_info *fi,
         return;
     }
     xi = &mi->mod->xxi[*s];
-
+    gotoxy(7, 0);
     //if (xi == NULL) return;
     printf("n:%-32.32s\n", xi->name);
     printf("RLS %02x\n", xi->rls);

@@ -92,14 +92,19 @@ int Player_InitServices() {
     return 0;
 }
 
-void Player_ConfigsScreen(Player* player, int* subscroll) {
+void Player_ConfigsScreen(Player* player, int* subscroll, int* configValue) {
     int configuable = 3;
     printf("=Config Screen=\n");
     printf("Config version: %d\n", player->playerConfig.version);
 
     printf("\n");
+    if (*subscroll < 0) *subscroll = 0;
+    if (*subscroll >= 3) *subscroll = 2;
+    printf("%sLoop Count:\e[0m %d\n", *subscroll == 0 ? "\e[36m" : "\e[0m", player->playerConfig.loopcheck);  //Subscroll ver 0
+    printf("%sDEBUG:\e[0m %d\n", *subscroll == 1 ? "\e[36m" : "\e[0m", player->playerConfig.debugmode);
+    printf("%sLoaderMode:\e[0m %d\n", *subscroll == 2 ? "\e[36m" : "\e[0m", player->playerConfig.loadMode);
 
-    printf("%sLoop Count: %d\n", subscroll == 0 ? "\e[36m" : "\e[0m", player->playerConfig.loopcheck);  //Subscroll ver 0
+    // Figure out which one's selected
 
     //Scroll range 3
     //TODO: please fix

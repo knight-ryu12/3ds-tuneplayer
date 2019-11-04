@@ -26,6 +26,7 @@ typedef struct {
     uint64_t first;
     int scroll;
     int subscroll;
+    int config_value;
     uint8_t info_flag;
     bool isPrint;
     bool isBottomScreenPrint;
@@ -144,8 +145,22 @@ static HIDFUNC(ButtonConfigSaveAndExit) {
     data->isBottomScreenPrint = false;
     data->info_flag = 0;
     data->scroll = 0;
+    data->config_value = 0;
 
     return 1;
+}
+
+static HIDFUNC(ButtonConfigRight) {
+    main_loop_data* data = (main_loop_data*)arg;
+
+    data->config_value++;
+    return 0;
+}
+
+static HIDFUNC(ButtonConfigLeft) {
+    main_loop_data* data = (main_loop_data*)arg;
+    data->config_value--;
+    return 0;
 }
 
 static HIDFUNC(ButtonPlaylistScreen) {
@@ -230,7 +245,7 @@ static HIDFUNC(HIDLoopConfigAction) {
 
     if (!data->isPrint) {
         Player_ClearTop(&g_player);
-        Player_ConfigsScreen(&g_player, &data->subscroll);
+        Player_ConfigsScreen(&g_player, &data->subscroll, &data->config_value);
         data->isPrint = true;
     }
 

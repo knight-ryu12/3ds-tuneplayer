@@ -51,7 +51,7 @@ int Player_InitServices();
 int Player_InitThread(Player* player, int model);
 int Player_Init(Player* player);
 void Player_Exit(Player* player);
-void Player_ConfigsScreen(Player* player, int* subscroll);
+void Player_ConfigsScreen(Player* player, int* subscroll, int* configValue);
 
 static inline void Player_SelectTop(Player* player) {
     consoleSelect(&player->top);
