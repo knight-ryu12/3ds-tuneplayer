@@ -12,7 +12,7 @@
 
 static const char *note_name[] = {"C-", "C#", "D-", "D#", "E-", "F-",
                                   "F#", "G-", "G#", "A-", "A#", "B-"};
-static char buf[16];
+static char buf[32];
 static char fx_buf[32];
 static char fx2_buf[32];
 static uint8_t old_note[256];
@@ -65,22 +65,23 @@ void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
               uint8_t fxp, bool isFT, bool isf2) {
     char _arg1[8];
     const char *p_arg1 = "-----";
+    const char *p_arg2 = "\e[37m";
     bool isEFFM = false;
     //bool isNNA = false;
     uint8_t _fxp = fxp;
-    bool isBufferMem = handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);
+    bool isBufferMem = handleFX(fxt, _fxp, &p_arg1, &p_arg2, _arg1, isFT);
     if (isBufferMem) {
         if (fxp == 0) {
             _fxp = get_effect_memory(ch, ofxp, fxt);
             isEFFM = true;
-            if (_fxp != 0) handleFX(fxt, _fxp, &p_arg1, _arg1, isFT);  // calling once again with updated information if needed.
+            if (_fxp != 0) handleFX(fxt, _fxp, &p_arg1, &p_arg2, _arg1, isFT);  // calling once again with updated information if needed.
         } else {
             //isNNA = true;
             set_effect_memory(ch, fxp, fxt, ofxp);
         }
     }
 
-    snprintf(buf, 20, "%-5.5s%s%02X\e[0m", p_arg1,
+    snprintf(buf, 32, "%s%-5.5s\e[0m%s%02X\e[0m", p_arg2, p_arg1,
              isEFFM ? "\e[36m" : "\e[0m", _fxp);
     // free(_arg1);
 }
@@ -136,7 +137,7 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         }
         parse_fx(i, fx_buf, old_fxp, ev->fxt, ev->fxp, isFT, false);
         parse_fx(i, fx2_buf, old_f2p, ev->f2t, ev->f2p, isFT, true);
-        printf("%s%2d\e[0m:%c%02x %s", i == hilight ? "\e[36;1m" : "\e[0m", i,
+        printf("%s%2d\e[0m:%c%02x%s", i == hilight ? "\e[36;1m" : "\e[0m", i,
                ev->note != 0 ? '!' : ci->volume == 0 ? ' ' : 'G', ci->instrument, buf);
         if (!mode)
             printf("%s%-4x %02x %02X%02X %s %s%c\n",
@@ -144,14 +145,15 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                    ci->pan, ci->volume, ev->vol, fx_buf, fx2_buf, ind);
         else {
             struct xmp_sample *xs = &xm->xxs[ci->sample];
-            printf("%-32.32s%c%c%c%c%c%c%c\n", xs->name,
+            struct xmp_instrument *xi = &xm->xxi[ci->instrument];
+            char *n = xs->name[0] == 0 ? xi->name : xs->name;
+            printf("%s%-32.32s\e[0m%c%c%c%c%c%c%c\n", xs->name[0] == 0 ? "I\e[31m" : "S\e[32m", n,
                    xs->flg & XMP_SAMPLE_16BIT ? 'W' : '-',
                    xs->flg & XMP_SAMPLE_LOOP ? 'L' : '-',
                    xs->flg & XMP_SAMPLE_LOOP_BIDIR ? 'B' : '-',
                    xs->flg & XMP_SAMPLE_LOOP_REVERSE ? 'R' : '-',
                    xs->flg & XMP_SAMPLE_LOOP_FULL ? 'F' : '-',
-                   xs->flg & XMP_SAMPLE_SYNTH ? 'S' : '-',
-                   ind);
+                   xs->flg & XMP_SAMPLE_SYNTH ? 'S' : '-', ind);
         }
     }
 }

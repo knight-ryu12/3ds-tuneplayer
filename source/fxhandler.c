@@ -63,7 +63,13 @@ bool handleSubFX(uint8_t fxt, uint8_t h, uint8_t l, const char** p_arg1, char* _
     return isBufferMem;
 }
 
-bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool isFT) {
+// Pitch (Y) *p_arg2 = "\e[33m";
+// Volum (G) *p_arg2 = "\e[32m";
+// Panning (C) *p_arg2 = "\e[36m";
+// Global (M) *p_arg2 = "\e[35m";
+// Misc (R) *p_arg2 = "\e[31m";
+
+bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, const char** p_arg2, char* _arg1, bool isFT) {
     bool isBufferMem = false;
     uint8_t h, l;
     h = (fxp >> 4) & 0xF;
@@ -74,45 +80,56 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
             if (!fxp) {  // need to be real, not fake one
                 break;
             }
-            *p_arg1 = "ARPeG";
+            *p_arg1 = "ARPeG";  //P
+            *p_arg2 = "\e[33m";
             break;
         case 1:  // 1xx Fxx // But when FFx, it FINELY, FEx EXTRA FINE...????
             isBufferMem = true;
             *p_arg1 = "PORtU";
+            *p_arg2 = "\e[33m";  // P
             break;
         case 2:  // 2xx Exx // But when EFx, it FINELY, EEx EXTRA FINE...???? I don't get it anymore.
             isBufferMem = true;
             *p_arg1 = "PORtD";
+            *p_arg2 = "\e[33m";  //P
             break;
         case 3:  // 3xx Gxx
             isBufferMem = true;
             *p_arg1 = "TPOrT";
+            *p_arg2 = "\e[33m";
             break;
         case 4:  // 4xy Hxy
             isBufferMem = true;
             *p_arg1 = "VIBrT";
+            *p_arg2 = "\e[33m";
             break;
         case 5:
             isBufferMem = true;
             *p_arg1 = "TONvS";
+            *p_arg2 = "\e[31m";
             break;
         case 6:
             isBufferMem = true;
             *p_arg1 = "VIBvS";
+            *p_arg2 = "\e[31m";
             break;
         case 7:
             isBufferMem = true;
             *p_arg1 = "TREmO";
+            *p_arg2 = "\e[32m";
             break;
         case 8:
             *p_arg1 = "PANsT";
+            *p_arg2 = "\e[36m";
             break;
         case 9:
             isBufferMem = true;
             *p_arg1 = "OFStS";
+            *p_arg2 = "\e[31m";
             break;
         case 0xa:
         case 0xa4:
+            *p_arg2 = "\e[32m";
             if (isFT) {
                 isBufferMem = true;
                 if (l == 0 && h > 0)  // Up
@@ -140,12 +157,15 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
 
         case 0xb:
             *p_arg1 = "POSjP";
+            *p_arg2 = "\e[35m";
             break;
         case 0xc:
             *p_arg1 = "VOLsT";
+            *p_arg2 = "\e[32m";
             break;
         case 0xd:
             *p_arg1 = "PTBrK";
+            *p_arg2 = "\e[35m";
             break;
         case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
                     // it down
@@ -156,38 +176,54 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, char* _arg1, bool i
         case 0xa3:
         case 0xf:
             *p_arg1 = "SPDsT";
+            *p_arg2 = "\e[35m";
             break;
 
-        case 0x10:  // Hxy
+            // END MOD
+
+        case 0x10:  //Gxy
+            *p_arg2 = "\e[32m";
+            *p_arg1 = "GVOlT";
+            break;
+
+        case 0x11:  //Hxy
             isBufferMem = true;
             *p_arg1 = "GVOlS";
+            *p_arg2 = "\e[32m";
             break;
 
-        case 0x11:
-            isBufferMem = true;
-            *p_arg1 = "GVOlS";
+        case 0x14:  //Kxx
+            *p_arg1 = "KEYoF";
+            *p_arg2 = "\e[31m";
             break;
 
-        case 0x15:
+        case 0x15:  //Lxy
             *p_arg1 = "EVPsS";
+            *p_arg2 = "\e[32m";
             break;
 
-        case 0x19:
+        case 0x19:  //Pxy
             isBufferMem = true;
             *p_arg1 = "PANsL";
-            break;
-        case 0xb5:
-            *p_arg1 = "VPNsL";
+            *p_arg2 = "\e[36m";
             break;
 
-        case 0x1d:
-            isBufferMem = true;
-            *p_arg1 = "TREmR";
-            break;
-
-        case 0x1b:
+        case 0x1b:  //Rxy
             isBufferMem = true;
             *p_arg1 = "RETrG";
+            *p_arg2 = "\e[31m";
+            break;
+
+        case 0x1d:  //Txy
+            isBufferMem = true;
+            *p_arg1 = "TREmR";
+            *p_arg2 = "\e[32m";
+            break;
+
+            // END XM
+
+        case 0xb5:
+            *p_arg1 = "VPNsL";
             break;
 
         // S3M/IT

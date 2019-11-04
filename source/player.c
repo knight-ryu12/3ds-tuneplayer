@@ -31,14 +31,17 @@ const char* default_search_path[] = {"romfs:/", "sdmc:/mod", "sdmc:/mods"};  //C
 
 void Player_AptHook(APT_HookType hook, void* param) {
     Player* player = (Player*)param;
+    static uint32_t save;
     switch (hook) {
         case APTHOOK_ONSUSPEND:
         case APTHOOK_ONSLEEP:
+            save = player->play_sound;
             player->play_sound = 0;
             break;
 
         case APTHOOK_ONRESTORE:
         case APTHOOK_ONWAKEUP:
+            if (save == 1) player->play_sound = 1;
             //Persist pause state
             //playSound = 1;
             break;
