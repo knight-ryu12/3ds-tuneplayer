@@ -149,12 +149,12 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
             struct xmp_sample *xs = &xm->xxs[ci->sample];
             if(ci->sample < xm->smp) {
             n = xs->name;
-            strncpy(sign,8,"S\e[32m");
+            strncpy(sign,"S\e[32m",8);
             }
             if(n[0] == 0 && ci->instrument < xm->ins) {
             struct xmp_instrument *xi = &xm->xxi[ci->instrument];
             n = xi->name;
-            strncpy(sign,8,"I\e[31m");
+            strncpy(sign,"I\e[31m",8);
             }
             if(n[0] == 0) n = "";
             printf("%s%-32.32s\e[0m%c%c%c%c%c%c%c\n", sign, n,
