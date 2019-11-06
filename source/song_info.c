@@ -146,8 +146,8 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
         else {
             char *n;
             char sign[8];
-            if(ci->sample < xm->smp) {
             struct xmp_sample *xs = &xm->xxs[ci->sample];
+            if(ci->sample < xm->smp) {
             n = xs->name;
             strncpy(sign,8,"S\e[32m");
             }
