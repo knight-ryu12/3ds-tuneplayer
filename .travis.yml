@@ -8,6 +8,7 @@ before_install:
 
 install:
           - sudo dpkg -i dkp-pacman.deb
+          - sudo dkp-pacman -Syy --noconfirm
           - sudo dkp-pacman -S --noconfirm 3ds-dev 3ds-libxmp
 
 script:
