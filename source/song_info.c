@@ -144,19 +144,19 @@ void show_channel_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
                    ci->pitchbend < 0 ? "-" : "+", ci->pitchbend < 0 ? -(unsigned)ci->pitchbend : ci->pitchbend,
                    ci->pan, ci->volume, ev->vol, fx_buf, fx2_buf, ind);
         else {
-            char *n;
+            char *n = "";
             char sign[8];
             struct xmp_sample *xs = &xm->xxs[ci->sample];
-            if(ci->sample < xm->smp) {
-            n = xs->name;
-            strncpy(sign,"S\e[32m",8);
-            }
-            if(n[0] == 0 && ci->instrument < xm->ins) {
             struct xmp_instrument *xi = &xm->xxi[ci->instrument];
-            n = xi->name;
-            strncpy(sign,"I\e[31m",8);
+            if (ci->sample < xm->smp && xs->name[0] != 0) {
+                n = xs->name;
+                strncpy(sign, "S\e[32m", 8);
             }
-            if(n[0] == 0) n = "";
+            if (n[0] == 0 && ci->instrument < xm->ins) {  // But still XS name is 0.
+                n = xi->name;
+                strncpy(sign, "I\e[31m", 8);
+            }
+            if (n[0] == 0) n = "";
             printf("%s%-32.32s\e[0m%c%c%c%c%c%c%c\n", sign, n,
                    xs->flg & XMP_SAMPLE_16BIT ? 'W' : '-',
                    xs->flg & XMP_SAMPLE_LOOP ? 'L' : '-',

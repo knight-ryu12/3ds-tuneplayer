@@ -8,53 +8,79 @@
 
 // Note to self; read OpenCubicPlayer sourcecode.
 
-bool handleSubFX(uint8_t fxt, uint8_t h, uint8_t l, const char** p_arg1, char* _arg1, bool isFT) {
+// Pitch (Y) *p_arg2 = "\e[33m";
+// Volum (G) *p_arg2 = "\e[32m";
+// Panning (C) *p_arg2 = "\e[36m";
+// Global (M) *p_arg2 = "\e[35m";
+// Misc (R) *p_arg2 = "\e[31m";
+
+bool handleSubFX(uint8_t fxt, uint8_t h, uint8_t l, const char** p_arg1, const char** p_arg2, char* _arg1, bool isFT) {
     bool isBufferMem = false;
     switch (h) {
-        case 0x1:
+        case 0x1:  // Fine Porta Up E1X
             isBufferMem = true;
             *p_arg1 = "EPRtU";
+            *p_arg2 = "\e[33m";
             break;
-        case 0x2:
+        case 0x2:  // File Porta Down E2X
             isBufferMem = true;
             *p_arg1 = "EPRtD";
+            *p_arg2 = "\e[33m";
             break;
-        case 0x3:
+        case 0x3:  // E3x Glissando Control
+            *p_arg1 = "EGLiC";
+            *p_arg2 = "\e[33m";
             // Not supported widely...?
             break;
-        case 0x4:
+        case 0x4:  // E4x Set Vibrato Waveform
             *p_arg1 = "STVwF";
+            *p_arg2 = "\e[33m";
             break;
-        case 0x5:
+        case 0x5:  // E5x Set Finetune
             *p_arg1 = "STFtV";
+            *p_arg2 = "\e[33m";
             break;
         case 0x6:  //Pattern loop is the special thing...
+            *p_arg2 = "\e[35m";
             if (l == 0)
-                *p_arg1 = "PTLpS";
+                *p_arg1 = "PTLpS";  // E60 Pattern Loop Start
             else
-                *p_arg1 = "PTLpG";
+                *p_arg1 = "PTLpG";  // E6X Pattern Loop
             break;
-
-        case 0x8:
+        case 0x7:  // E7X Set Tremolo WaveForm
+            *p_arg1 = "ESTwF";
+            *p_arg2 = "\e[32m";
+            break;
+        case 0x8:  // E8X Set panning (why)
             // No Buffer mem
             *p_arg1 = "ESEtP";
+            *p_arg2 = "\e[36m";
             break;
-        case 0xa:
+        case 0x9:  // E9X Retrigger
+            *p_arg1 = "ERTrG";
+            *p_arg2 = "\e[31m";
+            break;
+        case 0xa:  // EAX Fine Volume Slide Up
             isBufferMem = true;
             *p_arg1 = "EFVsU";
+            *p_arg2 = "\e[32m";
             break;
-        case 0xb:
+        case 0xb:  // EBX Fine Volume Slide Down
             isBufferMem = true;
             *p_arg1 = "EFVsD";
+            *p_arg2 = "\e[32m";
             break;
-        case 0xc:
+        case 0xc:  // ECX Note Cut
             *p_arg1 = "ENCuT";
+            *p_arg2 = "\e[35m";
             break;
-        case 0xd:
+        case 0xd:  // EDX Note Delay
             *p_arg1 = "EDElY";
+            *p_arg2 = "\e[35m";
             break;
-        case 0xe:
+        case 0xe:  // EEX Pattern Delay
             *p_arg1 = "EPDlY";
+            *p_arg2 = "\e[35m";
             break;
         default:
             snprintf(_arg1, 6, "??E%02X", fxt);
@@ -170,7 +196,7 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, const char** p_arg2
         case 0xe:;  // in FTII, E denotes "Extended" effect; that means we need break
                     // it down
             // TODO: Optimize the heck out of it.
-            isBufferMem = handleSubFX(fxt, h, l, p_arg1, _arg1, isFT);
+            isBufferMem = handleSubFX(fxt, h, l, p_arg1, p_arg2, _arg1, isFT);
             break;
 
         case 0xa3:
