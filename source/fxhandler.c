@@ -155,9 +155,10 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, const char** p_arg2
             break;
         case 0xa:
         case 0xa4:
+            isBufferMem = true;
             *p_arg2 = "\e[32m";
             if (isFT) {
-                isBufferMem = true;
+                //isBufferMem = true;
                 if (l == 0 && h > 0)  // Up
                     *p_arg1 = "VOLsU";
                 else if (h == 0 && l > 0)  // Down
@@ -177,8 +178,11 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, const char** p_arg2
                 *p_arg1 = "VOLsD";
             else if (h != 0 && l == 0)
                 *p_arg1 = "VOLsU";
-            else if (h == 0xf && l == 0xf)  // ???
-                *p_arg1 = "VOLsS";
+            else {
+                snprintf(_arg1, 6, "A%02X%02X", fxt, fxp);
+                *p_arg1 = _arg1;  // ?????????
+            }
+
             break;
 
         case 0xb:

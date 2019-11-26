@@ -54,11 +54,11 @@ void show_title(struct xmp_module_info *mi, const char *filename, PrintConsole *
 // I doubt not saving each one is bad.
 
 void set_effect_memory(int ch, uint8_t fxp, uint8_t fxt, uint8_t ofxp[256][256]) {
-    ofxp[fxt][ch] = fxp;
+    ofxp[ch][fxt] = fxp;
 }
 
 uint8_t get_effect_memory(int ch, uint8_t ofxp[256][256], uint8_t fxt) {
-    return ofxp[fxt][ch];
+    return ofxp[ch][fxt];
 }
 
 void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
@@ -69,12 +69,12 @@ void parse_fx(int ch, char *buf, uint8_t ofxp[256][256], uint8_t fxt,
     bool isEFFM = false;
     //bool isNNA = false;
     uint8_t _fxp = fxp;
-    bool isBufferMem = handleFX(fxt, _fxp, &p_arg1, &p_arg2, _arg1, isFT);
+    bool isBufferMem = handleFX(fxt, fxp, &p_arg1, &p_arg2, _arg1, isFT);
     if (isBufferMem) {
         if (fxp == 0) {
             _fxp = get_effect_memory(ch, ofxp, fxt);
             isEFFM = true;
-            if (_fxp != 0) handleFX(fxt, _fxp, &p_arg1, &p_arg2, _arg1, isFT);  // calling once again with updated information if needed.
+            if (_fxp != fxp) handleFX(fxt, _fxp, &p_arg1, &p_arg2, _arg1, isFT);  // calling once again with updated information if needed.
         } else {
             //isNNA = true;
             set_effect_memory(ch, fxp, fxt, ofxp);
