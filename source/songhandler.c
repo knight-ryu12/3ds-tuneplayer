@@ -9,7 +9,7 @@
 
 //this undefined makes loading directory slower, but it's an option
 #define DISABLE_LOADCHECK
-
+#define DEBUG
 #define MEMBLOCK_SIZE 2048
 // on over 2MB song, this value will be used
 
@@ -68,7 +68,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     if (buffer_sz >= 0x100000)
         blocks = blocks * 2;
     if (buffer_sz >= 0x400000)
-        blocks = blocks * 2;
+        blocks = blocks * 2;  // speed up
 
     rem = buffer_sz;
     for (uint32_t i = 0; i < buffer_sz; i += blocks) {
@@ -104,7 +104,7 @@ int loadSongMemory(xmp_context c, struct xmp_module_info *mi, char *path, char *
     xmp_set_player(c, XMP_PLAYER_MIX, 50);
     xmp_set_player(c, XMP_PLAYER_DEFPAN, 70);
     xmp_set_player(c, XMP_PLAYER_INTERP, XMP_INTERP_LINEAR);
-    xmp_set_player(c, XMP_PLAYER_VOICES, 256);
+    xmp_set_player(c, XMP_PLAYER_VOICES, 128);
     //_debug_pause();
     fclose(fp);
 #ifdef DEBUG

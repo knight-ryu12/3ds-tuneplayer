@@ -33,11 +33,11 @@ static Result PlayerConfig_GetConfig(PlayerConfig* config, Handle file) {
         uint32_t writesz = 0;
         r = FSFILE_Write(file, &writesz, 0, &default_pc, sizeof(default_pc), 0);
         *config = default_pc;
-        if (R_SUCCEEDED(r)) {
+        if (R_SUCCEEDED(r))
             printf("Done.\n");
-        } else {
+        else
             printf("Fail.\n");
-        }
+
 #ifdef DEBUG
         printf("FSFILE_FW %08lx, %ld\n", r, writesz);
 #endif

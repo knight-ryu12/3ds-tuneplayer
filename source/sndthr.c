@@ -134,7 +134,7 @@ void soundThread(void *arg) {
             player->render_time = svcGetSystemTick() - first;
             while (waveBuf[cur_wvbuf].status != NDSP_WBUF_DONE && player->run_sound)
                 //svcSleepThread(10e9 / (BLOCK / 2));
-                svcSleepThread(100000000 / (BLOCK / 2));
+                svcSleepThread(10e8 / (BLOCK / 2));
         }
     }
     ndspChnWaveBufClear(CHANNEL);

@@ -47,7 +47,7 @@ void show_generic_info(struct xmp_frame_info *fi, struct xmp_module_info *mi,
 void show_title(struct xmp_module_info *mi, const char *filename, PrintConsole *bot) {
     gotoxy(0, 0);
     consoleSelect(bot);
-    printf("%s\n%s\n", mi->mod->name[0] == 0 ? filename : mi->mod->name, mi->mod->type);
+    printf("%-40.40s\n%s\n", mi->mod->name[0] == 0 ? filename : mi->mod->name, mi->mod->type);
 }
 
 // Seems like FT does have memory for each effects...
