@@ -6,7 +6,7 @@
 #define CHANNEL 0x10
 #define SAMPLE_RATE 44100
 
-#define N3DS_BLOCK 3144
+#define N3DS_BLOCK 4096
 #define O3DS_BLOCK 8192
 // can someone find sweet spot?
 

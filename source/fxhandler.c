@@ -253,30 +253,42 @@ bool handleFX(uint8_t fxt, uint8_t fxp, const char** p_arg1, const char** p_arg2
             // END XM
 
         case 0xb5:
-            *p_arg1 = "VPNsL";
+            *p_arg1 = "VPNsL";  // This is Pan ver NOMEM
             break;
 
         // S3M/IT
-        case 0x8d:
-            *p_arg1 = "SURrD";
+        case 0x8d:  // XA4?
+            *p_arg2 = "\e[36m";
+            *p_arg1 = "SURrD";  // Set Aurround
             break;
         case 0x87:
+            *p_arg2 = "\e[35m";
             *p_arg1 = "SETtP";
             break;
 
         case 0x80:
+            isBufferMem = true;
+            *p_arg2 = "\e[32m";
             *p_arg1 = "TRLvL";
             break;
         case 0xc0:
+            isBufferMem = true;
+            *p_arg2 = "\e[32m";
             *p_arg1 = "VVLsU";
             break;
         case 0xc1:
+            isBufferMem = true;
+            *p_arg2 = "\e[32m";
             *p_arg1 = "VVLsD";
             break;
         case 0xc2:
+            isBufferMem = true;
+            *p_arg2 = "\e[32m";
             *p_arg1 = "VVLfU";
             break;
         case 0xc3:
+            isBufferMem = true;
+            *p_arg2 = "\e[32m";
             *p_arg1 = "VVLfD";
             break;
         default:

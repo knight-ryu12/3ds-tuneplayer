@@ -28,3 +28,11 @@ because libxmp was more easier.
 But soon I could backport it.
 
 
+## TODO
+- Create Config actually usable
+- Low Power Mode (Aka closed = run faster)
+- Figure out how notif LED works
+- Create Logo and Banner for CIA release
+- Create Random Shuffle Application
+- General cleanup
+

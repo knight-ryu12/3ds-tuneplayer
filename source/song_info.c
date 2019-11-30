@@ -263,7 +263,7 @@ void show_channel_instrument_info(struct xmp_frame_info *fi,
         return;
     }
     xi = &mi->mod->xxi[*s];
-    gotoxy(7, 0);
+    gotoxy(15, 0);
     //if (xi == NULL) return;
     printf("n:%-32.32s\n", xi->name);
     printf("RLS %02x\n", xi->rls);
