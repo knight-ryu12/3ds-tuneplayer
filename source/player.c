@@ -1,5 +1,6 @@
 #include "player.h"
 #include <3ds.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <wchar.h>
 #include "fshelper.h"
@@ -93,24 +94,6 @@ int Player_InitServices() {
         return 1;
     }
     return 0;
-}
-
-void Player_ConfigsScreen(Player* player, int* subscroll, int* configValue) {
-    int configuable = 3;
-    printf("=Config Screen=\n");
-    printf("Config version: %d\n", player->playerConfig.version);
-
-    printf("\n");
-    if (*subscroll < 0) *subscroll = 0;
-    if (*subscroll >= 3) *subscroll = 2;
-    printf("%sLoop Count:\e[0m %d\n", *subscroll == 0 ? "\e[36m" : "\e[0m", player->playerConfig.loopcheck);  //Subscroll ver 0
-    printf("%sDEBUG:\e[0m %d\n", *subscroll == 1 ? "\e[36m" : "\e[0m", player->playerConfig.debugmode);
-    printf("%sLoaderMode:\e[0m %d\n", *subscroll == 2 ? "\e[36m" : "\e[0m", player->playerConfig.loadMode);
-
-    // Figure out which one's selected
-
-    //Scroll range 3
-    //TODO: please fix
 }
 
 int Player_InitThread(Player* player, int model) {
@@ -251,4 +234,206 @@ void Player_Exit(Player* player) {
     ndspExit();
     romfsExit();
     gfxExit();
+}
+
+enum configurable_types {
+    T_CUSTOM = 0, // non specific type, implement proper functions
+    T_BOOL, // bool
+    T_UINT, // unsigned int
+    T_SINT, // signed int
+    T_UINT8, // uint8_t
+    T_UINT16, // uint16_t
+    T_UINT32, // uint32_t
+    T_UINT64, // uint64_t
+    T_SINT8, // int8_t
+    T_SINT16, // int16_t
+    T_SINT32, // int32_t
+    T_SINT64, // int64_t
+};
+
+typedef struct configurable_variables {
+    const char* printname;
+    const char* description;
+    enum configurable_types type;
+    int data_off;
+    int (*stringconvert)(const struct configurable_variables*, char*, int, const void*);
+    void (*dataupdate)(const struct configurable_variables*, void*, int);
+} configurable_variables;
+
+static int default_basictype_to_buffer(const configurable_variables* var, char* buf, int size, const void* data) {
+    enum configurable_types type = var->type;
+    if (type == T_BOOL) {
+        if (buf) strncpy(buf, *(const bool*)data ? "ON" : "OFF", size);
+        return strlen(*(const bool*)data ? "ON" : "OFF");
+    }
+    else if (type == T_UINT)
+        return snprintf(buf, size, "%u", *(const unsigned int*)data);
+    else if (type == T_SINT)
+        return snprintf(buf, size, "%d", *(const int*)data);
+    else if (type == T_UINT8)
+        return snprintf(buf, size, "%u", *(const u8*)data);
+    else if (type == T_SINT8)
+        return snprintf(buf, size, "%d", *(const s8*)data);
+    else if (type == T_UINT16)
+        return snprintf(buf, size, "%u", *(const u16*)data);
+    else if (type == T_SINT16)
+        return snprintf(buf, size, "%d", *(const s16*)data);
+    else if (type == T_UINT32)
+        return snprintf(buf, size, "%lu", *(const u32*)data);
+    else if (type == T_SINT32)
+        return snprintf(buf, size, "%ld", *(const s32*)data);
+    else if (type == T_UINT64)
+        return snprintf(buf, size, "%llu", *(const u64*)data);
+    else if (type == T_SINT64)
+        return snprintf(buf, size, "%lld", *(const s64*)data);
+    else return -1;
+}
+
+static void default_basictype_update(const configurable_variables* var, void* data, int inc) {
+    enum configurable_types type = var->type;
+    if (type == T_BOOL)
+        *(bool*)data ^= inc & 0x1;
+    else if (type == T_UINT)
+        *(unsigned int*)data += inc;
+    else if (type == T_SINT)
+        *(signed int*)data += inc;
+    else if (type == T_UINT8)
+        *(u8*)data += inc;
+    else if (type == T_SINT8)
+        *(s8*)data += inc;
+    else if (type == T_UINT16)
+        *(u16*)data += inc;
+    else if (type == T_SINT16)
+        *(s16*)data += inc;
+    else if (type == T_UINT32)
+        *(u32*)data += inc;
+    else if (type == T_SINT32)
+        *(s32*)data += inc;
+    else if (type == T_UINT64)
+        *(u64*)data += inc;
+    else if (type == T_SINT64)
+        *(s64*)data += inc;
+}
+
+static const configurable_variables cvars[] = {
+    {"Loop Count", NULL, T_SINT, offsetof(PlayerConfig, loopcheck), &default_basictype_to_buffer, &default_basictype_update},
+    {"DEBUG", NULL, T_BOOL, offsetof(PlayerConfig, debugmode), &default_basictype_to_buffer, &default_basictype_update},
+    {"Loader Mode", NULL, T_SINT, offsetof(PlayerConfig, loadMode), &default_basictype_to_buffer, &default_basictype_update},
+};
+
+static const int configurable_count = sizeof(cvars) / sizeof(cvars[0]);
+
+static int _nullsnprintf(const char* format, ...) {
+    va_list va;
+    va_start(va, format);
+    int ret = vsnprintf(NULL, 0, format, va);
+    va_end(va);
+    return ret;
+}
+
+// return n of lines
+static int cvar_to_line(const configurable_variables* var, const void* data, bool print, bool highlight) {
+    int (*printcall)(const char*, ...) = print ? &printf : &_nullsnprintf;
+    int initial_print = printcall("%s:",  var->printname);
+    int count_n_start = initial_print < 25 ? 0 : ((initial_print + 49) / 50);
+    if (count_n_start) printcall("\n");
+    else printcall("%*s", 25 - initial_print, ""); // padding
+    if (highlight) printcall("\e[36m");
+    int bufsize = var->stringconvert(var, NULL, 0, data);
+    if (bufsize < 0) return -1;
+    char* buf = (char*)malloc(bufsize + 1);
+    if (!buf) return -1;
+    if (bufsize+2 > 25) printcall("\n");
+    var->stringconvert(var, buf, bufsize+1, data);
+    int n = printcall(highlight ? "<%s>" : " %s ", buf);
+    if (highlight) printcall("\e[0m");
+    printcall("\n");
+    free(buf);
+    return count_n_start + ((n + 49) / 50);
+}
+
+static void PrintConfigError(Player* player) {
+    Player_ClearConsoles(player);
+    Player_SelectTop(player);
+    printf("CONFIG PRINT ERROR");
+    Player_SelectBottom(player);
+    printf("This shouldn't have happened.\n"
+           "Press Y to exit config screen.");
+}
+
+void Player_ConfigsScreen(Player* player, int* listscroll, int* position, int update) {
+    Player_ClearConsoles(player);
+    Player_SelectTop(player);
+
+    printf("=Config Screen v: %d=\n", player->playerConfig.version);
+    //printf("Config version: %d\n", player->playerConfig.version);
+
+    printf("\n");
+    if (*position < 0) *position = 0;
+    else if (*position >= configurable_count) *position = configurable_count - 1;
+    if (*listscroll < 0) *listscroll = 0;
+    else if (*listscroll >= configurable_count) *listscroll = configurable_count - 1;
+    if (*listscroll >= *position) *listscroll = *position;
+
+    do {
+        int posn = cvar_to_line(&cvars[*position], ((uint8_t*)&player->playerConfig) + cvars[*position].data_off, false, false);
+
+        if (posn < 0) {
+            PrintConfigError(player);
+            return;
+        }
+
+        if (posn >= 24) {
+            *listscroll = *position;
+            break;
+        }
+
+        for (int freen = 24-posn, pos = *position - 1; pos > 0; --pos) {
+            const configurable_variables* cvar = &cvars[pos];
+            int n = cvar_to_line(cvar, ((uint8_t*)&player->playerConfig) + cvar->data_off, false, false);
+            if (n < 0) {
+                PrintConfigError(player);
+                return;
+            }
+            freen -= n;
+            if (freen < 0) {
+                if (*listscroll < pos+1) *listscroll = pos+1;
+                break;
+            }
+        }
+    } while(0);
+
+    if (update)
+        cvars[*position].dataupdate(&cvars[*position], ((uint8_t*)&player->playerConfig) + cvars[*position].data_off, update);
+
+    printf("%28s\n", *listscroll ? "^^^^^^" : "");
+
+    for (int freen = 24, pos = *listscroll; pos < configurable_count; ++pos) {
+        const configurable_variables* cvar = &cvars[pos];
+        int n = cvar_to_line(cvar, ((uint8_t*)&player->playerConfig) + cvar->data_off, false, false);
+        if (n < 0) {
+            PrintConfigError(player);
+            return;
+        }
+        freen -= n;
+        if (freen < 0 && pos != *position) {
+            if (pos < configurable_count) printf("%28s", "vvvvvv");
+            break;
+        }
+        n = cvar_to_line(cvar, ((uint8_t*)&player->playerConfig) + cvar->data_off, true, pos == *position);
+        if (n < 0) {
+            PrintConfigError(player);
+            return;
+        }
+        // same check as before, but without position check
+        if (freen < 0) {
+            if (pos < configurable_count) printf("%28s", "vvvvvv");
+            break;
+        }
+    }
+
+    if (cvars[*position].description) {
+        Player_SelectBottom(player);
+        puts(cvars[*position].description);
+    }
 }
