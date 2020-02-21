@@ -296,26 +296,39 @@ static void default_basictype_update(const configurable_variables* var, void* da
     switch(type) {
         case T_BOOL:
             *(bool*)data ^= inc & 0x1;
+            break;
         case T_UINT:
             *(unsigned int*)data += inc;
+            break;
         case T_SINT:
             *(signed int*)data += inc;
+            break;
         case T_UINT8:
-            *(u8*)data += inc;
+            *(uint8_t*)data += inc;
+            break;
         case T_SINT8:
-            *(s8*)data += inc;
+            *(int8_t*)data += inc;
+            break;
         case T_UINT16:
-            *(u16*)data += inc;
+            *(uint16_t*)data += inc;
+            break;
         case T_SINT16:
-            *(s16*)data += inc;
+            *(int16_t*)data += inc;
+            break;
         case T_UINT32:
-            *(u32*)data += inc;
+            *(uint32_t*)data += inc;
+            break;
         case T_SINT32:
-            *(s32*)data += inc;
+            *(int32_t*)data += inc;
+            break;
         case T_UINT64:
-            *(u64*)data += inc;
+            *(uint64_t*)data += inc;
+            break;
         case T_SINT64:
-            *(s64*)data += inc;
+            *(int64_t*)data += inc;
+            break;
+        default:
+            break;
     }        
 }
 
