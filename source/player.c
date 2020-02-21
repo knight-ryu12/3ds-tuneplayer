@@ -262,57 +262,61 @@ typedef struct configurable_variables {
 
 static int default_basictype_to_buffer(const configurable_variables* var, char* buf, int size, const void* data) {
     enum configurable_types type = var->type;
-    if (type == T_BOOL) {
-        if (buf) strncpy(buf, *(const bool*)data ? "ON" : "OFF", size);
-        return strlen(*(const bool*)data ? "ON" : "OFF");
+    switch(type) {
+        case T_BOOL:
+            if (buf) strncpy(buf, *(const bool*)data ? "ON" : "OFF", size);
+            return strlen(*(const bool*)data ? "ON" : "OFF");
+        case T_UINT:
+            return snprintf(buf, size, "%u", *(const unsigned int*)data);
+        case T_SINT:
+            return snprintf(buf, size, "%d", *(const int*)data);
+        case T_UINT8:
+            return snprintf(buf, size, "%u", *(const uint8_t*)data);
+        case T_SINT8:
+            return snprintf(buf, size, "%d", *(const int8_t*)data);
+        case T_UINT16:
+            return snprintf(buf, size, "%u", *(const uint16_t*)data);
+        case T_SINT16:
+            return snprintf(buf, size, "%d", *(const int16_t*)data);
+        case T_UINT32:
+            return snprintf(buf, size, "%lu", *(const uint32_t*)data);
+        case T_SINT32:
+            return snprintf(buf, size, "%ld", *(const int32_t*)data);
+        case T_UINT64:
+            return snprintf(buf, size, "%llu", *(const uint64_t*)data);
+        case T_SINT64:
+            return snprintf(buf, size, "%lld", *(const int64_t*)data);
+        default:
+            return -1;
     }
-    else if (type == T_UINT)
-        return snprintf(buf, size, "%u", *(const unsigned int*)data);
-    else if (type == T_SINT)
-        return snprintf(buf, size, "%d", *(const int*)data);
-    else if (type == T_UINT8)
-        return snprintf(buf, size, "%u", *(const u8*)data);
-    else if (type == T_SINT8)
-        return snprintf(buf, size, "%d", *(const s8*)data);
-    else if (type == T_UINT16)
-        return snprintf(buf, size, "%u", *(const u16*)data);
-    else if (type == T_SINT16)
-        return snprintf(buf, size, "%d", *(const s16*)data);
-    else if (type == T_UINT32)
-        return snprintf(buf, size, "%lu", *(const u32*)data);
-    else if (type == T_SINT32)
-        return snprintf(buf, size, "%ld", *(const s32*)data);
-    else if (type == T_UINT64)
-        return snprintf(buf, size, "%llu", *(const u64*)data);
-    else if (type == T_SINT64)
-        return snprintf(buf, size, "%lld", *(const s64*)data);
-    else return -1;
 }
 
 static void default_basictype_update(const configurable_variables* var, void* data, int inc) {
     enum configurable_types type = var->type;
-    if (type == T_BOOL)
-        *(bool*)data ^= inc & 0x1;
-    else if (type == T_UINT)
-        *(unsigned int*)data += inc;
-    else if (type == T_SINT)
-        *(signed int*)data += inc;
-    else if (type == T_UINT8)
-        *(u8*)data += inc;
-    else if (type == T_SINT8)
-        *(s8*)data += inc;
-    else if (type == T_UINT16)
-        *(u16*)data += inc;
-    else if (type == T_SINT16)
-        *(s16*)data += inc;
-    else if (type == T_UINT32)
-        *(u32*)data += inc;
-    else if (type == T_SINT32)
-        *(s32*)data += inc;
-    else if (type == T_UINT64)
-        *(u64*)data += inc;
-    else if (type == T_SINT64)
-        *(s64*)data += inc;
+    switch(type) {
+        case T_BOOL:
+            *(bool*)data ^= inc & 0x1;
+        case T_UINT:
+            *(unsigned int*)data += inc;
+        case T_SINT:
+            *(signed int*)data += inc;
+        case T_UINT8:
+            *(u8*)data += inc;
+        case T_SINT8:
+            *(s8*)data += inc;
+        case T_UINT16:
+            *(u16*)data += inc;
+        case T_SINT16:
+            *(s16*)data += inc;
+        case T_UINT32:
+            *(u32*)data += inc;
+        case T_SINT32:
+            *(s32*)data += inc;
+        case T_UINT64:
+            *(u64*)data += inc;
+        case T_SINT64:
+            *(s64*)data += inc;
+    }        
 }
 
 static const configurable_variables cvars[] = {
