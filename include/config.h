@@ -5,7 +5,7 @@ typedef struct {
     uint8_t version;
     uint8_t debugmode;  // 1= Enable Debug
     int loopcheck;
-    int loadMode;  // LoadMode; using new method or xmp mode
+    uint8_t loadMode;  // LoadMode; using new method or xmp mode
 } PlayerConfig;
 
 Result PlayerConfig_Load(PlayerConfig* config);

@@ -5,7 +5,7 @@
 #include "fshelper.h"
 
 #define DEBUG
-#define CONFIG_VERSION 3
+#define CONFIG_VERSION 4
 #define FSA_PATH 0x4152435A00000001LLU
 
 static const char* const _config = "/config.bin";  //length 11 + 1 null

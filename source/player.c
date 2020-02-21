@@ -335,7 +335,7 @@ static void default_basictype_update(const configurable_variables* var, void* da
 static const configurable_variables cvars[] = {
     {"Loop Count", NULL, T_SINT, offsetof(PlayerConfig, loopcheck), &default_basictype_to_buffer, &default_basictype_update},
     {"DEBUG", NULL, T_BOOL, offsetof(PlayerConfig, debugmode), &default_basictype_to_buffer, &default_basictype_update},
-    {"Loader Mode", NULL, T_SINT, offsetof(PlayerConfig, loadMode), &default_basictype_to_buffer, &default_basictype_update},
+    {"Loader Mode", NULL, T_BOOL, offsetof(PlayerConfig, loadMode), &default_basictype_to_buffer, &default_basictype_update},
 };
 
 static const int configurable_count = sizeof(cvars) / sizeof(cvars[0]);
